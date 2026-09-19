@@ -1,0 +1,55 @@
+name: Deploy GitHub Pages
+
+on:
+  push:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # 1. Set up Go on the GitHub Actions runner
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22' # Match your local Go version
+          cache: true
+
+      # 2. Fetch dependencies
+      - name: Download Dependencies
+        run: go mod download
+
+      # 2. Compile your main.go into WebAssembly right inside the pipeline
+      - name: Compile Go to WebAssembly
+        run: GOOS=js GOARCH=wasm go build -o web-demo/main.wasm ./src/
+
+      # 3. Configures the GitHub Pages environment metadata
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      # 4. Upload your web-demo folder (which now includes the freshly compiled main.wasm)
+      - name: Upload Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './web-demo' 
+
+      # 5. Push it live to the web server
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
