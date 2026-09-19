@@ -1,1 +1,1 @@
-env GOOS=js GOARCH=wasm go build -o main.wasm .
+env GOOS=js GOARCH=wasm go build -o main.wasm ./src/
