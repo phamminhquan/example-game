@@ -5,10 +5,12 @@ import (
 	"io"
 	"strconv"
 	"os"
+	_ "embed"
 	"bytes"
 	"fmt"
 	"image"
 	"image/color"
+	_ "image/png"
 	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
