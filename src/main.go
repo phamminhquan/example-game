@@ -1,6 +1,10 @@
 package main
 
 import (
+	"encoding/csv"
+	"io"
+	"strconv"
+	"os"
 	"bytes"
 	"fmt"
 	"image"
@@ -9,7 +13,6 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
-	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
 )
 
 // Game window resolution
@@ -17,12 +20,12 @@ const screenWidth = 256
 const screenHeight = 256
 
 // Tile size:
-const tileSize = 32
+const tileSize = 16
 
 // Tile constant to map grid IDs to semantic meanings
 const (
-	TileGrass = iota 	// 0
-	TileWall					// 1
+	Walkable = iota 	// 0
+	Block					// 1
 )
 
 const (
@@ -34,8 +37,11 @@ const (
 
 // Variable: tile image that contains all the available tiles
 // Will be initialized by init() function
-var tileSetImage *ebiten.Image
+var sceneBgImage []*ebiten.Image
 var playerSetImage *ebiten.Image
+
+// Walkable CSV
+var walkableCsv [][]int
 
 // Function: init
 // special, predefined function that executes automatically when a package is
@@ -44,18 +50,55 @@ var playerSetImage *ebiten.Image
 // structure
 func init() {
 	// Decode and image from the image file's byte slice.
-	img, _, err := image.Decode(bytes.NewReader(images.Tiles_png))
+	imgBytes, err := os.ReadFile("tiled-project/parking-lot.png")
 	if err != nil {
 		log.Fatal(err)
 	}
-	tileSetImage = ebiten.NewImageFromImage(img)
+	img, _, err := image.Decode(bytes.NewReader(imgBytes))
+	//img, _, err := image.Decode(bytes.NewReader(images.Tiles_png))
+	if err != nil {
+		log.Fatal(err)
+	}
+	sceneBgImage = append(sceneBgImage, ebiten.NewImageFromImage(img))
 
-	// Decode runner image
-	img, _, err = image.Decode(bytes.NewReader(images.Runner_png))
+	// Decode player image
+	imgBytes, err = os.ReadFile("tiled-project/character.png")
+	if err != nil {
+		log.Fatal(err)
+	}
+	img, _, err = image.Decode(bytes.NewReader(imgBytes))
 	if err != nil {
 		log.Fatal(err)
 	}
 	playerSetImage = ebiten.NewImageFromImage(img)
+
+	// Load scene walkable csv
+	file, err := os.Open("tiled-project/parking-lot.csv")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
+	reader := csv.NewReader(file)
+	// Loop through each line
+	for {
+		record, err := reader.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatal(err)
+		}
+		// Convert each string of '0' or '1' to an integer
+		var intRow []int
+		for _, val := range record {
+			num, err := strconv.Atoi(val)
+			if err != nil {
+				log.Fatal(err)
+			}
+			intRow = append(intRow, num)
+		}
+		walkableCsv = append(walkableCsv, intRow)
+	}
 }
 
 // Tilemap structure: stores layout matrix and handles boundary logic
@@ -83,23 +126,7 @@ func (m *Tilemap) IsWalkable(x, y int) bool {
 		return false	// Out-of-bounds
 	}
 	tile := m.Grid[y][x]
-	return tile != TileWall
-}
-
-// Function: return start pixel (both dimension) of a tile inside of the map
-// tileset based on what tile type it is
-func GetTileCoord(tileType int) (x, y int) {
-	var tileGridX, tileGridY int
-	if tileType == TileGrass {
-		tileGridX = 8
-		tileGridY = 1
-	} else if tileType == TileWall {
-		tileGridX = 2
-		tileGridY = 4
-	} else {
-		log.Fatalf("[ERROR] Unknown tile type.")
-	}
-	return tileGridX * tileSize, tileGridY * tileSize
+	return tile != Block
 }
 
 // Function: return start pixel (both dimension) of a tile insde of the player
@@ -107,17 +134,17 @@ func GetTileCoord(tileType int) (x, y int) {
 func GetPlayerCoord(actionType int) (x, y int) {
 	var playerGridX, playerGridY int
 	if actionType == DirLeft {
-		playerGridX = 0
-		playerGridY = 1
-	} else if actionType == DirRight {
-		playerGridX = 1
-		playerGridY = 1
-	} else if actionType == DirUp {
 		playerGridX = 2
-		playerGridY = 1
+		playerGridY = 0
+	} else if actionType == DirRight {
+		playerGridX = 0
+		playerGridY = 0
+	} else if actionType == DirUp {
+		playerGridX = 1
+		playerGridY = 0
 	} else if actionType == DirDown {
 		playerGridX = 3
-		playerGridY = 1
+		playerGridY = 0
 	} else {
 		log.Fatalf("[ERROR] Unknown player action.")
 	}
@@ -136,7 +163,8 @@ type Game struct {
 	Tilemap Tilemap
 	Player Player
 	inputDelay int
-	tileSetImage *ebiten.Image
+	Scene int
+	sceneBgImage []*ebiten.Image
 	playerSetImage *ebiten.Image
 }
 
@@ -194,24 +222,10 @@ func (g *Game) DrawBackground(screen *ebiten.Image) {
 	// Camera position
 	camX := float64((screenWidth / 2) - playerPixelX - (tileSize / 2))
 	camY := float64((screenHeight / 2) - playerPixelY - (tileSize / 2))
-	// Draw each tile in the background
-	for y:= 0; y < g.Tilemap.Height(); y++ {
-		for x := 0; x < g.Tilemap.Width(); x++ {
-			tileType := g.Tilemap.Grid[y][x]
-			// Calculate where the tile lives in the tile image
-			srcX, srcY := GetTileCoord(tileType)
-			// Crop out the precise 32x32 tile rectangle with SubImage
-			rect := image.Rect(srcX, srcY, srcX + tileSize, srcY + tileSize)
-			tileSprite := g.tileSetImage.SubImage(rect).(*ebiten.Image)
-			// Matrix configuration ot translate the image location
-			op := &ebiten.DrawImageOptions{}
-			renderX := float64(x * tileSize) + camX
-			renderY := float64(y * tileSize) + camY
-			op.GeoM.Translate(renderX, renderY)
-			// Draw call
-			screen.DrawImage(tileSprite, op)
-		}
-	}
+	// Draw call
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(camX, camY)
+	screen.DrawImage(g.sceneBgImage[g.Scene], op)
 }
 
 func (g *Game) DrawPlayer(screen *ebiten.Image) {
@@ -224,19 +238,11 @@ func (g *Game) DrawPlayer(screen *ebiten.Image) {
 	// Get player start coordinate inside of the player tileset
 	pSrcX, pSrcY := GetPlayerCoord(g.Player.Dir)
 	// Get the player rectangle image coordinate
-	//pRect := image.Rect(pSrcX, pSrcY, pSrcX + tileSize, pSrcY + tileSize)
-	pRect := image.Rect(pSrcX + tileSize, pSrcY + tileSize, pSrcX, pSrcY)
+	pRect := image.Rect(pSrcX, pSrcY, pSrcX + tileSize, pSrcY + 2 * tileSize)
 	// Extract the subimage from the player tileset
 	playerSprite := g.playerSetImage.SubImage(pRect).(*ebiten.Image)
 	// Set up the draw options (start point of the draw call)
 	popts := &ebiten.DrawImageOptions{}
-	// If player is facing left, flip the player image
-	if g.Player.Dir == DirLeft {
-		// Flip horizontally
-		popts.GeoM.Scale(-1, 1)
-		// Push it back to bounding square
-		popts.GeoM.Translate(float64(tileSize), 0)
-	}
 	pRenderX := float64(playerPixelX) + camX
 	pRenderY := float64(playerPixelY) + camY
 	popts.GeoM.Translate(pRenderX, pRenderY)
@@ -271,28 +277,14 @@ func main() {
 	ebiten.SetWindowSize(screenWidth * 3, screenHeight * 3)
 	ebiten.SetWindowTitle("Tiles (Ebitengine Demo)")
 
-	// Define layout blueprint array
-	// 10 x 10 grid
-	initialMap := Tilemap {
-		Grid: [][]int {
-			{TileWall , TileWall , TileWall , TileWall , TileWall , TileWall , TileWall , TileWall , TileWall , TileWall },
-			{TileWall , TileGrass, TileGrass, TileGrass, TileGrass, TileGrass, TileGrass, TileGrass, TileGrass, TileWall },
-			{TileWall , TileGrass, TileGrass, TileGrass, TileGrass, TileGrass, TileGrass, TileGrass, TileGrass, TileWall },
-			{TileWall , TileGrass, TileGrass, TileGrass, TileGrass, TileGrass, TileGrass, TileGrass, TileGrass, TileWall },
-			{TileWall , TileGrass, TileGrass, TileGrass, TileGrass, TileGrass, TileGrass, TileGrass, TileGrass, TileWall },
-			{TileWall , TileGrass, TileGrass, TileGrass, TileGrass, TileGrass, TileGrass, TileGrass, TileGrass, TileWall },
-			{TileWall , TileGrass, TileGrass, TileGrass, TileGrass, TileGrass, TileGrass, TileGrass, TileGrass, TileWall },
-			{TileWall , TileGrass, TileGrass, TileGrass, TileGrass, TileGrass, TileGrass, TileGrass, TileGrass, TileWall },
-			{TileWall , TileGrass, TileGrass, TileGrass, TileGrass, TileGrass, TileGrass, TileGrass, TileGrass, TileWall },
-			{TileWall , TileWall , TileWall , TileWall , TileWall , TileWall , TileWall , TileWall , TileWall , TileWall },
-		},
-	}
-
 	// Instantiate game state
 	g := &Game {
-		Tilemap: initialMap,
-		tileSetImage: tileSetImage,
+		Tilemap: Tilemap {
+			Grid: walkableCsv,
+		},
+		sceneBgImage: sceneBgImage,
 		playerSetImage: playerSetImage,
+		Scene: 0,
 		Player: Player {
 			GridX: 5,
 			GridY: 5,
