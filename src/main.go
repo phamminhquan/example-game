@@ -4,7 +4,6 @@ import (
 	"encoding/csv"
 	"io"
 	"strconv"
-	"os"
 	_ "embed"
 	"bytes"
 	"fmt"
@@ -12,6 +11,7 @@ import (
 	"image/color"
 	_ "image/png"
 	"log"
+	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -42,6 +42,14 @@ const (
 var sceneBgImage []*ebiten.Image
 var playerSetImage *ebiten.Image
 
+// Declare the embedded compile-time asset bytes
+//go:embed assets/parking-lot.png
+var parkingLotByteData []byte
+//go:embed assets/character.png
+var characterByteData []byte
+//go:embed assets/parking-lot.csv
+var walkableCsvStr string
+
 // Walkable CSV
 var walkableCsv [][]int
 
@@ -52,35 +60,21 @@ var walkableCsv [][]int
 // structure
 func init() {
 	// Decode and image from the image file's byte slice.
-	imgBytes, err := os.ReadFile("tiled-project/parking-lot.png")
-	if err != nil {
-		log.Fatal(err)
-	}
-	img, _, err := image.Decode(bytes.NewReader(imgBytes))
-	//img, _, err := image.Decode(bytes.NewReader(images.Tiles_png))
+	img, _, err := image.Decode(bytes.NewReader(parkingLotByteData))
 	if err != nil {
 		log.Fatal(err)
 	}
 	sceneBgImage = append(sceneBgImage, ebiten.NewImageFromImage(img))
 
 	// Decode player image
-	imgBytes, err = os.ReadFile("tiled-project/character.png")
-	if err != nil {
-		log.Fatal(err)
-	}
-	img, _, err = image.Decode(bytes.NewReader(imgBytes))
+	img, _, err = image.Decode(bytes.NewReader(characterByteData))
 	if err != nil {
 		log.Fatal(err)
 	}
 	playerSetImage = ebiten.NewImageFromImage(img)
 
 	// Load scene walkable csv
-	file, err := os.Open("tiled-project/parking-lot.csv")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer file.Close()
-	reader := csv.NewReader(file)
+	reader := csv.NewReader(strings.NewReader(walkableCsvStr))
 	// Loop through each line
 	for {
 		record, err := reader.Read()
