@@ -1,6 +1,7 @@
 package main
 
 import (
+	"math"
 	"encoding/csv"
 	"io"
 	"strconv"
@@ -26,15 +27,30 @@ const tileSize = 16
 
 // Tile constant to map grid IDs to semantic meanings
 const (
-	Walkable = iota 	// 0
-	Block					// 1
+	Walkable = iota // 0
+	Block // 1
 )
 
+// Player facing direction
 const (
-	DirDown = iota	// 0
-	DirLeft					// 1
-	DirRight				// 2
-	DirUp						// 3
+	DirRight = iota // 0
+	DirUp // 1
+	DirLeft // 2
+	DirDown // 3
+)
+
+// Player movespeed
+// How many pixels player slides per frame
+// Must divide cleanly uinto your tileSize, like 2.0 or 4.0 for 16/32px
+const (
+	moveSpeed = 4.0 // Frame sliding speed (pixel per tick)
+	animSpeed = 0.2 // Animation speed (frame per tick)
+)
+
+// Player actions
+const (
+	ActionIdle = iota // 0
+	ActionWalk // 1
 )
 
 // Variable: tile image that contains all the available tiles
@@ -127,38 +143,42 @@ func (m *Tilemap) IsWalkable(x, y int) bool {
 
 // Function: return start pixel (both dimension) of a tile insde of the player
 // tileset based on what action it is
-func GetPlayerCoord(actionType int) (x, y int) {
+func GetPlayerCoord(actionType, dir, frame int) (x, y int) {
+	// From the way the player tile set is set up row 2 contains all the
+	// walking animation tyles. The first 6 tiles of row 2 is moving right.
+	// Next 6 is moving up, next 6 is moving left, and next 6 is moving down
+	// Row 1 of tileset is idle
 	var playerGridX, playerGridY int
-	if actionType == DirLeft {
-		playerGridX = 2
-		playerGridY = 0
-	} else if actionType == DirRight {
-		playerGridX = 0
-		playerGridY = 0
-	} else if actionType == DirUp {
-		playerGridX = 1
-		playerGridY = 0
-	} else if actionType == DirDown {
-		playerGridX = 3
-		playerGridY = 0
+	playerGridX = (dir * 6) + frame
+	if actionType == ActionIdle {
+		//fmt.Printf("Action is Idle.\n")
+		playerGridY = 2
+	} else if actionType == ActionWalk {
+		//fmt.Printf("Action is Walk.\n")
+		playerGridY = 4
 	} else {
 		log.Fatalf("[ERROR] Unknown player action.")
 	}
+
 	return playerGridX * tileSize, playerGridY * tileSize
 }
 
 // Player structure: tracks player position
 type Player struct {
-	GridX int
+	GridX int // Logical coordinates
 	GridY int
-	Dir int
+	PixelX float64 // Visual coordinates
+	PixelY float64
+	Action int // Player action
+	Dir int // Facing direction
+	AnimFrame int // 0 = idle, 1 = step left foot, 2 = idle, 3 = step right foot
+	AnimProgress float64 // Tracks independent elapsed subframe time vector
 }
 
 // Game data structure
 type Game struct {
 	Tilemap Tilemap
 	Player Player
-	inputDelay int
 	Scene int
 	sceneBgImage []*ebiten.Image
 	playerSetImage *ebiten.Image
@@ -166,16 +186,53 @@ type Game struct {
 
 // Game Method: Update
 func (g *Game) Update() error {
-	// Input delay is used for frame cooldown
-	if g.inputDelay > 0 {
-		g.inputDelay--
-		return nil
+	// If player is moving , handel visual sliding interpolation
+	if g.Player.Action == ActionWalk {
+		targetPixelX := float64(g.Player.GridX * tileSize)
+		targetPixelY := float64(g.Player.GridY * tileSize)
+
+		// Slide horizontally toward target
+		if g.Player.PixelX < targetPixelX {
+			g.Player.PixelX += moveSpeed
+		} else if g.Player.PixelX > targetPixelX {
+			g.Player.PixelX -= moveSpeed
+		}
+
+		// Slide vertically toward target
+		if g.Player.PixelY < targetPixelY {
+			g.Player.PixelY += moveSpeed
+		} else if g.Player.PixelY > targetPixelY {
+			g.Player.PixelY -= moveSpeed
+		}
+
+		// Independent animation layer
+		// Accumulate fractional time completely separate from moveSpeed
+		g.Player.AnimProgress += animSpeed
+		if g.Player.AnimProgress >= 1.0 {
+			g.Player.AnimProgress = 0.0
+			g.Player.AnimFrame = (g.Player.AnimFrame + 1) % 6 // 6 frames per movement
+		}
+
+		// Check if we arrived perfectly at our destination
+		if math.Abs(g.Player.PixelX - targetPixelX) < 0.1 &&
+		math.Abs(g.Player.PixelY - targetPixelY) < 0.1 {
+			g.Player.PixelX = targetPixelX
+			g.Player.PixelY = targetPixelY
+			g.Player.Action = ActionIdle
+		} else {
+			return nil
+		}
 	}
+
+	// If standing still, snap visual pixels to the grid and look for new key
+	// presses
+	g.Player.PixelX = float64(g.Player.GridX * tileSize)
+	g.Player.PixelY = float64(g.Player.GridY * tileSize)
 
 	nextX, nextY := g.Player.GridX, g.Player.GridY
 	moved := false
 
-	// Capture intent
+	// Capture key presses
 	if ebiten.IsKeyPressed(ebiten.KeyArrowLeft) {
 		fmt.Printf("Key Press: Arrow Left\n")
 		nextX--
@@ -203,8 +260,12 @@ func (g *Game) Update() error {
 		if g.Tilemap.IsWalkable(nextX, nextY) {
 			g.Player.GridX = nextX
 			g.Player.GridY = nextY
+			g.Player.Action = ActionWalk
 		}
-		g.inputDelay = 5 // Frame cooldown
+	} else {
+		// If no key is held then we reset player to idle
+		g.Player.AnimFrame = 2
+		g.Player.AnimProgress = 0.0
 	}
 
 	return nil
@@ -232,7 +293,9 @@ func (g *Game) DrawPlayer(screen *ebiten.Image) {
 	camX := float64((screenWidth / 2) - playerPixelX - (tileSize / 2))
 	camY := float64((screenHeight / 2) - playerPixelY - (tileSize / 2))
 	// Get player start coordinate inside of the player tileset
-	pSrcX, pSrcY := GetPlayerCoord(g.Player.Dir)
+	pSrcX, pSrcY := GetPlayerCoord(g.Player.Action, g.Player.Dir, g.Player.AnimFrame)
+	//pSrcX := (g.Player.Dir * 6 * tileSize) + g.Player.AnimFrame * tileSize
+	//pSrcY := 4 * tileSize
 	// Get the player rectangle image coordinate
 	pRect := image.Rect(pSrcX, pSrcY, pSrcX + tileSize, pSrcY + 2 * tileSize)
 	// Extract the subimage from the player tileset
@@ -272,6 +335,11 @@ func main() {
 	// Set window properties
 	ebiten.SetWindowSize(screenWidth * 3, screenHeight * 3)
 	ebiten.SetWindowTitle("Tiles (Ebitengine Demo)")
+	ebiten.SetTPS(30)
+
+	// Initialize player start postion on scene in grid units
+	playerStartX := 5
+	playerStartY := 5
 
 	// Instantiate game state
 	g := &Game {
@@ -282,8 +350,11 @@ func main() {
 		playerSetImage: playerSetImage,
 		Scene: 0,
 		Player: Player {
-			GridX: 5,
-			GridY: 5,
+			GridX: playerStartX, // Player start position in scene in grid unit
+			GridY: playerStartY,
+			PixelX: float64(playerStartX * tileSize), // Player start position in pixel
+			PixelY: float64(playerStartY * tileSize),
+			Action: ActionIdle,
 			Dir: DirDown,
 		},
 	}
