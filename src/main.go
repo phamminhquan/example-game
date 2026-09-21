@@ -20,8 +20,8 @@ import (
 )
 
 // Game window resolution
-const screenWidth = 400
-const screenHeight = 240
+const screenWidth = 320
+const screenHeight = 180
 
 // Tile size:
 const tileSize = 16
@@ -388,7 +388,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 // Main
 func main() {
 	// Set window properties
-	ebiten.SetWindowSize(screenWidth * 3, screenHeight * 3)
+	ebiten.SetWindowSize(screenWidth * 6, screenHeight * 4)
 	ebiten.SetWindowTitle("Tiles (Ebitengine Demo)")
 	ebiten.SetTPS(30)
 
@@ -399,7 +399,7 @@ func main() {
 	// Initialize TouchButtons bounding box for mobile
 	buttonSize := 32
 	padX := 40 // Bottom left cluster placement
-	padY := 160
+	padY := 180 / 2
 	mobileButtons := []TouchButton {
 		{ // Up button
 			boundX: padX,
