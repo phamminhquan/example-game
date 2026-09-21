@@ -388,7 +388,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 // Main
 func main() {
 	// Set window properties
-	ebiten.SetWindowSize(screenWidth * 6, screenHeight * 4)
+	ebiten.SetWindowSize(screenWidth * 6, screenHeight * 3)
 	ebiten.SetWindowTitle("Tiles (Ebitengine Demo)")
 	ebiten.SetTPS(30)
 
