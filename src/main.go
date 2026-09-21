@@ -20,8 +20,8 @@ import (
 )
 
 // Game window resolution
-const screenWidth = 320
-const screenHeight = 180
+const screenWidth = 432
+const screenHeight = 240
 
 // Tile size:
 const tileSize = 16
@@ -388,7 +388,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 // Main
 func main() {
 	// Set window properties
-	ebiten.SetWindowSize(screenWidth * 6, screenHeight * 3)
+	ebiten.SetWindowSize(screenWidth * 3, screenHeight * 3)
 	ebiten.SetWindowTitle("Tiles (Ebitengine Demo)")
 	ebiten.SetTPS(30)
 
