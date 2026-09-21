@@ -16,11 +16,12 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
 // Game window resolution
-const screenWidth = 256
-const screenHeight = 256
+const screenWidth = 320
+const screenHeight = 240
 
 // Tile size:
 const tileSize = 16
@@ -163,6 +164,12 @@ func GetPlayerCoord(actionType, dir, frame int) (x, y int) {
 	return playerGridX * tileSize, playerGridY * tileSize
 }
 
+// Touch Button defines a simple interactive screen bounding box area
+type TouchButton struct {
+	boundX, boundY, boundWidth, boundHeight int // bounding box
+	Dir int // maps to DirLeft, DirRight, DirUp, DirDown
+}
+
 // Player structure: tracks player position
 type Player struct {
 	GridX int // Logical coordinates
@@ -182,6 +189,7 @@ type Game struct {
 	Scene int
 	sceneBgImage []*ebiten.Image
 	playerSetImage *ebiten.Image
+	TouchButtons []TouchButton
 }
 
 // Game Method: Update
@@ -233,30 +241,58 @@ func (g *Game) Update() error {
 	moved := false
 
 	// Capture key presses
+	var activeDir int
 	if ebiten.IsKeyPressed(ebiten.KeyArrowLeft) {
 		fmt.Printf("Key Press: Arrow Left\n")
 		nextX--
-		g.Player.Dir = DirLeft
+		activeDir = DirLeft
 		moved = true
 	} else if ebiten.IsKeyPressed(ebiten.KeyArrowRight) {
 		fmt.Printf("Key Press: Arrow Right\n")
 		nextX++
-		g.Player.Dir = DirRight
+		activeDir = DirRight
 		moved = true
 	} else if ebiten.IsKeyPressed(ebiten.KeyArrowUp) {
 		fmt.Printf("Key Press: Arrow Up\n")
 		nextY--
-		g.Player.Dir = DirUp
+		activeDir = DirUp
 		moved = true
 	} else if ebiten.IsKeyPressed(ebiten.KeyArrowDown) {
 		fmt.Printf("Key Press: Arrow Down\n")
 		nextY++
-		g.Player.Dir = DirDown
+		activeDir = DirDown
 		moved = true
+	}
+
+	// Check for mobile virtual button inputs
+	if !moved {
+		// Grab all active finger touch IDs pressed on browser
+		touchIDs := ebiten.TouchIDs()
+		for _, id := range touchIDs {
+			tx, ty := ebiten.TouchPosition(id) // Grab touch position
+			// Loop through our TouchButtons
+			for _, b := range g.TouchButtons {
+				if tx >= b.boundX && tx <= b.boundX + b.boundWidth &&
+				ty >= b.boundY && ty <= b.boundY + b.boundHeight {
+					// Finger touch is within bounding box of button
+					activeDir = b.Dir
+					moved = true
+					switch activeDir {
+						case DirLeft: nextX--
+						case DirRight: nextX++
+						case DirUp: nextY--
+						case DirDown: nextY++
+					}
+					// Stop checking other buttons when this one is a hit
+					break
+				}
+			}
+		}
 	}
 
 	// Collision check: if walkable, then update player position
 	if moved {
+		g.Player.Dir = activeDir
 		if g.Tilemap.IsWalkable(nextX, nextY) {
 			g.Player.GridX = nextX
 			g.Player.GridY = nextY
@@ -285,6 +321,7 @@ func (g *Game) DrawBackground(screen *ebiten.Image) {
 	screen.DrawImage(g.sceneBgImage[g.Scene], op)
 }
 
+// Game Method: Draw Player (called in Draw method)
 func (g *Game) DrawPlayer(screen *ebiten.Image) {
 	// Keep player focused in screen center
 	playerPixelX := g.Player.GridX * tileSize
@@ -309,6 +346,21 @@ func (g *Game) DrawPlayer(screen *ebiten.Image) {
 	screen.DrawImage(playerSprite, popts)
 }
 
+// Game Method:  Draw touch buttons for mobile
+func (g *Game) DrawTouchButtons(screen *ebiten.Image) {
+	// Draw each button
+	for _, b := range g.TouchButtons {
+		vector.DrawFilledCircle(
+			screen,
+			float32(b.boundX + b.boundWidth / 2.0),
+			float32(b.boundY + b.boundHeight / 2.0),
+			float32(b.boundWidth / 2.0),
+			color.NRGBA{255, 255, 255, 128},
+			false,
+		)
+	}
+}
+
 // Game Method: Draw
 func (g *Game) Draw(screen *ebiten.Image) {
 	// Clear out canvas first
@@ -319,6 +371,9 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	// Draw Player
 	g.DrawPlayer(screen)
+
+	// Draw virtual buttons
+	g.DrawTouchButtons(screen)
 
 	// Display Tick per second
 	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f", ebiten.ActualTPS()))
@@ -341,6 +396,41 @@ func main() {
 	playerStartX := 5
 	playerStartY := 5
 
+	// Initialize TouchButtons bounding box for mobile
+	buttonSize := 32
+	padX := 40 // Bottom left cluster placement
+	padY := 160
+	mobileButtons := []TouchButton {
+		{ // Up button
+			boundX: padX,
+			boundY: padY - buttonSize,
+			boundWidth: buttonSize,
+			boundHeight: buttonSize,
+			Dir: DirUp,
+		},
+		{ // Down button
+			boundX: padX,
+			boundY: padY + buttonSize,
+			boundWidth: buttonSize,
+			boundHeight: buttonSize,
+			Dir: DirDown,
+		},
+		{ // Left button
+			boundX: padX - buttonSize,
+			boundY: padY,
+			boundWidth: buttonSize,
+			boundHeight: buttonSize,
+			Dir: DirLeft,
+		},
+		{ // Right button
+			boundX: padX + buttonSize,
+			boundY: padY,
+			boundWidth: buttonSize,
+			boundHeight: buttonSize,
+			Dir: DirRight,
+		},
+	}
+
 	// Instantiate game state
 	g := &Game {
 		Tilemap: Tilemap {
@@ -357,6 +447,7 @@ func main() {
 			Action: ActionIdle,
 			Dir: DirDown,
 		},
+		TouchButtons: mobileButtons,
 	}
 
 	if err := ebiten.RunGame(g); err != nil {
