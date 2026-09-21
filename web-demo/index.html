@@ -1,2 +1,25 @@
 <!DOCTYPE html>
+<meta charset="utf-8">
+<!--Force mobile browser to scale the page and disable double tap zoom-->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+<title>Example Tile Game</title>
+<style>
+  body {
+    margin: 0;
+    background: #111;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    width: 100vw
+    overflow: hidden;
+  }
+  canvas {
+    /* Force ebitengine canvas to expand to max size */
+    width: 100vw !important;
+    height: 100vh !important;
+    object-fit: contain; /* Keep game aspect ratio perfect */
+    image-rendering: pixelated; /* Keep pixel art sharp */
+  }
+</style>
 <iframe src="main.html" width="640" height="480"></iframe>

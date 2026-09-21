@@ -20,7 +20,7 @@ import (
 )
 
 // Game window resolution
-const screenWidth = 320
+const screenWidth = 400
 const screenHeight = 240
 
 // Tile size:
