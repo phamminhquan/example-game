@@ -621,7 +621,7 @@ func main() {
 	// Instantiate game state
 	g := &Game {
 		Scenes: gameScenes,
-		CurrentScene: SceneCourtYard,
+		CurrentScene: SceneParkingLot,
 		playerSetImage: playerSetImage,
 		Player: Player {
 			GridX: playerStartX, // Player start position in scene in grid unit
