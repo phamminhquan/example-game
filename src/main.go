@@ -4,17 +4,12 @@ import (
 	"cmp"
 	"slices"
 	"math"
-	"encoding/csv"
-	"io"
-	"strconv"
 	_ "embed"
-	"bytes"
 	"fmt"
 	"image"
 	"image/color"
 	_ "image/png"
 	"log"
-	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -67,20 +62,6 @@ const (
 	PlayerID = iota // 0
 	TreeID // 1
 )
-
-// Declare the embedded compile-time asset bytes
-//go:embed assets/exterior-sprites.png
-var exteriorByteData []byte
-//go:embed assets/player-sprites.png
-var playerByteData []byte
-//go:embed assets/parking-lot.png
-var parkingLotByteData []byte
-//go:embed assets/parking-lot-collision.csv
-var parkingLotCsvStr string
-//go:embed assets/court-yard.png
-var courtYardByteData []byte
-//go:embed assets/court-yard-collision.csv
-var courtYardCsvStr string
 
 // Touch Button defines a simple interactive screen bounding box area
 type TouchButton struct {
@@ -380,84 +361,6 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 	return screenWidth, screenHeight
 }
 
-// Helper functions
-// Function: return start pixel (both dimension) of a tile insde of the player
-// tileset based on what action it is
-func GetPlayerCoord(actionType, dir, frame int) (x, y int) {
-	// From the way the player tile set is set up row 2 contains all the
-	// walking animation tyles. The first 6 tiles of row 2 is moving right.
-	// Next 6 is moving up, next 6 is moving left, and next 6 is moving down
-	// Row 1 of tileset is idle
-	var playerGridX, playerGridY int
-	playerGridX = (dir * 6) + frame
-	if actionType == ActionIdle {
-		playerGridY = 2
-	} else if actionType == ActionWalk {
-		playerGridY = 4
-	} else {
-		log.Fatalf("[ERROR] Unknown player action.")
-	}
-	return playerGridX * tileSize, playerGridY * tileSize
-}
-
-// Function to load embedded image
-func loadEmbeddedImage(byteData []byte) *ebiten.Image {
-	// Decode and image from the image file's byte slice.
-	img, _, err := image.Decode(bytes.NewReader(byteData))
-	if err != nil {
-		log.Fatal(err)
-	}
-	return ebiten.NewImageFromImage(img)
-}
-
-// Function to load collision csv
-func loadCollisionCsv(csvStr string) [][]int {
-	// Load scene walkable csv
-	reader := csv.NewReader(strings.NewReader(csvStr))
-	// Loop through each line
-	var collisionCsv [][]int
-	for {
-		record, err := reader.Read()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			log.Fatal(err)
-		}
-		// Convert each string of '0' or '1' to an integer
-		var intRow []int
-		for _, val := range record {
-			num, err := strconv.Atoi(val)
-			if err != nil {
-				log.Fatal(err)
-			}
-			intRow = append(intRow, num)
-		}
-		collisionCsv = append(collisionCsv, intRow)
-	}
-	return collisionCsv
-}
-
-// Global declaration of RenderItems
-var exteriorImage *ebiten.Image
-
-func GetExteriorItemCoord(itemID int) (int, int, int, int) {
-	var GridSrcX, GridSrcY, GridDstX, GridDstY int
-	switch itemID {
-	case TreeID:
-		GridSrcX = 33
-		GridSrcY = 10
-		GridDstX = GridSrcX + 1
-		GridDstY = GridSrcY + 2
-	default:
-		GridSrcX = 0
-		GridDstX = 1
-		GridSrcY = 0
-		GridDstY = 1
-	}
-	return GridSrcX * tileSize, GridSrcY * tileSize, GridDstX * tileSize, GridDstY * tileSize
-}
-
 // Main
 func main() {
 	// Set window properties
@@ -465,158 +368,9 @@ func main() {
 	ebiten.SetWindowTitle("Tiles (Ebitengine Demo)")
 	ebiten.SetTPS(30)
 
-	// Read in assets
-	exteriorImage := loadEmbeddedImage(exteriorByteData)
-	parkingLotBg := loadEmbeddedImage(parkingLotByteData)
-	courtYardBg := loadEmbeddedImage(courtYardByteData)
-	playerSetImage := loadEmbeddedImage(playerByteData)
-
-	// Build scene registry index container map
-	gameScenes := make(map[int]*Scene)
-	// Scene: Parking Lot
-	gameScenes[SceneParkingLot] = &Scene {
-		ID: SceneParkingLot,
-		BgImage: parkingLotBg,
-		Collision: loadCollisionCsv(parkingLotCsvStr),
-		WidthPixels: float64(parkingLotBg.Bounds().Dx()),
-		HeightPixels: float64(parkingLotBg.Bounds().Dy()),
-		RenderItems: []RenderItem {
-			{
-				ID: TreeID,
-				BaseY: 23 * tileSize, // base of tree
-				ScreenDstX: 2 * tileSize,
-				ScreenDstY: 22 * tileSize,
-				SpriteImg: exteriorImage,
-			},
-			{
-				ID: TreeID,
-				BaseY: 23 * tileSize, // base of tree
-				ScreenDstX: 10 * tileSize,
-				ScreenDstY: 22 * tileSize,
-				SpriteImg: exteriorImage,
-			},
-			{
-				ID: TreeID,
-				BaseY: 21 * tileSize, // base of tree
-				ScreenDstX: 17 * tileSize,
-				ScreenDstY: 20 * tileSize,
-				SpriteImg: exteriorImage,
-			},
-			{
-				ID: TreeID,
-				BaseY: 13 * tileSize, // base of tree
-				ScreenDstX: 6 * tileSize,
-				ScreenDstY: 12 * tileSize,
-				SpriteImg: exteriorImage,
-			},
-			{
-				ID: TreeID,
-				BaseY: 13 * tileSize, // base of tree
-				ScreenDstX: 14 * tileSize,
-				ScreenDstY: 12 * tileSize,
-				SpriteImg: exteriorImage,
-			},
-			{
-				ID: TreeID,
-				BaseY: 11 * tileSize, // base of tree
-				ScreenDstX: 17 * tileSize,
-				ScreenDstY: 10 * tileSize,
-				SpriteImg: exteriorImage,
-			},
-		},
-	}
-
-	// Scene: Court Yard
-	gameScenes[SceneCourtYard] = &Scene {
-		ID: SceneCourtYard,
-		BgImage: courtYardBg,
-		Collision: loadCollisionCsv(courtYardCsvStr),
-		WidthPixels: float64(courtYardBg.Bounds().Dx()),
-		HeightPixels: float64(courtYardBg.Bounds().Dy()),
-		RenderItems: []RenderItem {
-			{
-				ID: TreeID,
-				BaseY: 19 * tileSize, // base of tree
-				ScreenDstX: 2 * tileSize,
-				ScreenDstY: 18 * tileSize,
-				SpriteImg: exteriorImage,
-			},
-			{
-				ID: TreeID,
-				BaseY: 15 * tileSize, // base of tree
-				ScreenDstX: 2 * tileSize,
-				ScreenDstY: 14 * tileSize,
-				SpriteImg: exteriorImage,
-			},
-			{
-				ID: TreeID,
-				BaseY: 7 * tileSize, // base of tree
-				ScreenDstX: 3 * tileSize,
-				ScreenDstY: 6 * tileSize,
-				SpriteImg: exteriorImage,
-			},
-			{
-				ID: TreeID,
-				BaseY: 6 * tileSize, // base of tree
-				ScreenDstX: 5 * tileSize,
-				ScreenDstY: 5 * tileSize,
-				SpriteImg: exteriorImage,
-			},
-			{
-				ID: TreeID,
-				BaseY: 7 * tileSize, // base of tree
-				ScreenDstX: 7 * tileSize,
-				ScreenDstY: 6 * tileSize,
-				SpriteImg: exteriorImage,
-			},
-			{
-				ID: TreeID,
-				BaseY: 6 * tileSize, // base of tree
-				ScreenDstX: 9 * tileSize,
-				ScreenDstY: 5 * tileSize,
-				SpriteImg: exteriorImage,
-			},
-		},
-	}
-
 	// Initialize player start postion on scene in grid units
 	playerStartX := 3
 	playerStartY := 3
-
-	// Initialize TouchButtons bounding box for mobile
-	buttonSize := 32
-	padX := 40 // Bottom left cluster placement
-	padY := 180 / 2
-	mobileButtons := []TouchButton {
-		{ // Up button
-			boundX: padX,
-			boundY: padY - buttonSize,
-			boundWidth: buttonSize,
-			boundHeight: buttonSize,
-			Dir: DirUp,
-		},
-		{ // Down button
-			boundX: padX,
-			boundY: padY + buttonSize,
-			boundWidth: buttonSize,
-			boundHeight: buttonSize,
-			Dir: DirDown,
-		},
-		{ // Left button
-			boundX: padX - buttonSize,
-			boundY: padY,
-			boundWidth: buttonSize,
-			boundHeight: buttonSize,
-			Dir: DirLeft,
-		},
-		{ // Right button
-			boundX: padX + buttonSize,
-			boundY: padY,
-			boundWidth: buttonSize,
-			boundHeight: buttonSize,
-			Dir: DirRight,
-		},
-	}
 
 	// Instantiate game state
 	g := &Game {
