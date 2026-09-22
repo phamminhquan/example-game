@@ -37,7 +37,7 @@ const (
 // Scenes
 const (
 	SceneParkingLot = iota // 0
-	SceneEntrance // 1
+	SceneCourtYard // 1
 )
 
 // Player facing direction
@@ -71,12 +71,16 @@ const (
 // Declare the embedded compile-time asset bytes
 //go:embed assets/exterior-sprites.png
 var exteriorByteData []byte
-//go:embed assets/parking-lot.png
-var parkingLotByteData []byte
 //go:embed assets/player-sprites.png
 var playerByteData []byte
+//go:embed assets/parking-lot.png
+var parkingLotByteData []byte
 //go:embed assets/parking-lot-collision.csv
 var parkingLotCsvStr string
+//go:embed assets/court-yard.png
+var courtYardByteData []byte
+//go:embed assets/court-yard-collision.csv
+var courtYardCsvStr string
 
 // Touch Button defines a simple interactive screen bounding box area
 type TouchButton struct {
@@ -131,10 +135,14 @@ type Game struct {
 // not wall
 func (g *Game) IsWalkable(x, y int) bool {
 	currentScene := g.Scenes[g.CurrentScene]
-	if x < 0 || x >= len(currentScene.Collision) || y < 0 || y >= len(currentScene.Collision[y]) {
+	//fmt.Printf("Scene: %d  X: %d  Y: %d  Collision: %d\n",
+	//	currentScene.ID, x, y, currentScene.Collision[y][x])
+	if y <= 0 || y >= len(currentScene.Collision) || x <= 0 || x >= len(currentScene.Collision[y]) {
+		//fmt.Printf("Out of bounds\n")
 		return false	// Out-of-bounds
+	} else {
+		return currentScene.Collision[y][x] != Block
 	}
-	return currentScene.Collision[y][x] != Block
 }
 
 // Game Method: Update
@@ -460,6 +468,7 @@ func main() {
 	// Read in assets
 	exteriorImage := loadEmbeddedImage(exteriorByteData)
 	parkingLotBg := loadEmbeddedImage(parkingLotByteData)
+	courtYardBg := loadEmbeddedImage(courtYardByteData)
 	playerSetImage := loadEmbeddedImage(playerByteData)
 
 	// Build scene registry index container map
@@ -474,52 +483,105 @@ func main() {
 		RenderItems: []RenderItem {
 			{
 				ID: TreeID,
-				BaseY: 21 * tileSize, // base of tree
-				ScreenDstX: 1 * tileSize,
-				ScreenDstY: 20 * tileSize,
+				BaseY: 23 * tileSize, // base of tree
+				ScreenDstX: 2 * tileSize,
+				ScreenDstY: 22 * tileSize,
+				SpriteImg: exteriorImage,
+			},
+			{
+				ID: TreeID,
+				BaseY: 23 * tileSize, // base of tree
+				ScreenDstX: 10 * tileSize,
+				ScreenDstY: 22 * tileSize,
 				SpriteImg: exteriorImage,
 			},
 			{
 				ID: TreeID,
 				BaseY: 21 * tileSize, // base of tree
-				ScreenDstX: 9 * tileSize,
+				ScreenDstX: 17 * tileSize,
 				ScreenDstY: 20 * tileSize,
 				SpriteImg: exteriorImage,
 			},
+			{
+				ID: TreeID,
+				BaseY: 13 * tileSize, // base of tree
+				ScreenDstX: 6 * tileSize,
+				ScreenDstY: 12 * tileSize,
+				SpriteImg: exteriorImage,
+			},
+			{
+				ID: TreeID,
+				BaseY: 13 * tileSize, // base of tree
+				ScreenDstX: 14 * tileSize,
+				ScreenDstY: 12 * tileSize,
+				SpriteImg: exteriorImage,
+			},
+			{
+				ID: TreeID,
+				BaseY: 11 * tileSize, // base of tree
+				ScreenDstX: 17 * tileSize,
+				ScreenDstY: 10 * tileSize,
+				SpriteImg: exteriorImage,
+			},
+		},
+	}
+
+	// Scene: Court Yard
+	gameScenes[SceneCourtYard] = &Scene {
+		ID: SceneCourtYard,
+		BgImage: courtYardBg,
+		Collision: loadCollisionCsv(courtYardCsvStr),
+		WidthPixels: float64(courtYardBg.Bounds().Dx()),
+		HeightPixels: float64(courtYardBg.Bounds().Dy()),
+		RenderItems: []RenderItem {
 			{
 				ID: TreeID,
 				BaseY: 19 * tileSize, // base of tree
-				ScreenDstX: 16 * tileSize,
+				ScreenDstX: 2 * tileSize,
 				ScreenDstY: 18 * tileSize,
 				SpriteImg: exteriorImage,
 			},
 			{
 				ID: TreeID,
-				BaseY: 11 * tileSize, // base of tree
+				BaseY: 15 * tileSize, // base of tree
+				ScreenDstX: 2 * tileSize,
+				ScreenDstY: 14 * tileSize,
+				SpriteImg: exteriorImage,
+			},
+			{
+				ID: TreeID,
+				BaseY: 7 * tileSize, // base of tree
+				ScreenDstX: 3 * tileSize,
+				ScreenDstY: 6 * tileSize,
+				SpriteImg: exteriorImage,
+			},
+			{
+				ID: TreeID,
+				BaseY: 6 * tileSize, // base of tree
 				ScreenDstX: 5 * tileSize,
-				ScreenDstY: 10 * tileSize,
+				ScreenDstY: 5 * tileSize,
 				SpriteImg: exteriorImage,
 			},
 			{
 				ID: TreeID,
-				BaseY: 11 * tileSize, // base of tree
-				ScreenDstX: 13 * tileSize,
-				ScreenDstY: 10 * tileSize,
+				BaseY: 7 * tileSize, // base of tree
+				ScreenDstX: 7 * tileSize,
+				ScreenDstY: 6 * tileSize,
 				SpriteImg: exteriorImage,
 			},
 			{
 				ID: TreeID,
-				BaseY: 9 * tileSize, // base of tree
-				ScreenDstX: 16 * tileSize,
-				ScreenDstY: 8 * tileSize,
+				BaseY: 6 * tileSize, // base of tree
+				ScreenDstX: 9 * tileSize,
+				ScreenDstY: 5 * tileSize,
 				SpriteImg: exteriorImage,
 			},
 		},
 	}
 
 	// Initialize player start postion on scene in grid units
-	playerStartX := 5
-	playerStartY := 5
+	playerStartX := 3
+	playerStartY := 3
 
 	// Initialize TouchButtons bounding box for mobile
 	buttonSize := 32
@@ -559,7 +621,7 @@ func main() {
 	// Instantiate game state
 	g := &Game {
 		Scenes: gameScenes,
-		CurrentScene: SceneParkingLot,
+		CurrentScene: SceneCourtYard,
 		playerSetImage: playerSetImage,
 		Player: Player {
 			GridX: playerStartX, // Player start position in scene in grid unit
