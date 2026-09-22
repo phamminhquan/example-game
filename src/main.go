@@ -1,6 +1,8 @@
 package main
 
 import (
+	"cmp"
+	"slices"
 	"math"
 	"encoding/csv"
 	"io"
@@ -32,6 +34,12 @@ const (
 	Block // 1
 )
 
+// Scenes
+const (
+	SceneParkingLot = iota // 0
+	SceneEntrance // 1
+)
+
 // Player facing direction
 const (
 	DirRight = iota // 0
@@ -54,115 +62,21 @@ const (
 	ActionWalk // 1
 )
 
-// Variable: tile image that contains all the available tiles
-// Will be initialized by init() function
-var sceneBgImage []*ebiten.Image
-var playerSetImage *ebiten.Image
+// Renderable Item ID
+const (
+	PlayerID = iota // 0
+	TreeID // 1
+)
 
 // Declare the embedded compile-time asset bytes
+//go:embed assets/exterior-sprites.png
+var exteriorByteData []byte
 //go:embed assets/parking-lot.png
 var parkingLotByteData []byte
-//go:embed assets/character.png
-var characterByteData []byte
-//go:embed assets/parking-lot.csv
-var walkableCsvStr string
-
-// Walkable CSV
-var walkableCsv [][]int
-
-// Function: init
-// special, predefined function that executes automatically when a package is
-// initialized. Takes no parameters, returns no vale
-// This function is used to read in Tiles.png and convert it to an image data
-// structure
-func init() {
-	// Decode and image from the image file's byte slice.
-	img, _, err := image.Decode(bytes.NewReader(parkingLotByteData))
-	if err != nil {
-		log.Fatal(err)
-	}
-	sceneBgImage = append(sceneBgImage, ebiten.NewImageFromImage(img))
-
-	// Decode player image
-	img, _, err = image.Decode(bytes.NewReader(characterByteData))
-	if err != nil {
-		log.Fatal(err)
-	}
-	playerSetImage = ebiten.NewImageFromImage(img)
-
-	// Load scene walkable csv
-	reader := csv.NewReader(strings.NewReader(walkableCsvStr))
-	// Loop through each line
-	for {
-		record, err := reader.Read()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			log.Fatal(err)
-		}
-		// Convert each string of '0' or '1' to an integer
-		var intRow []int
-		for _, val := range record {
-			num, err := strconv.Atoi(val)
-			if err != nil {
-				log.Fatal(err)
-			}
-			intRow = append(intRow, num)
-		}
-		walkableCsv = append(walkableCsv, intRow)
-	}
-}
-
-// Tilemap structure: stores layout matrix and handles boundary logic
-type Tilemap struct {
-	Grid [][]int
-}
-
-// Tilemap Method: Width returns the map width in grid units
-func (m *Tilemap) Width() int {
-	if len(m.Grid) == 0 {
-		return 0
-	}
-	return len(m.Grid[0])
-}
-
-// Tilemap Method: Height returns height of grid in units
-func (m *Tilemap) Height() int {
-	return len(m.Grid)
-}
-
-// Tilemap Method: IsWalkable returns tru if coordinate is within bounds and
-// not wall
-func (m *Tilemap) IsWalkable(x, y int) bool {
-	if x < 0 || x >= m.Width() || y < 0 || y >= m.Height() {
-		return false	// Out-of-bounds
-	}
-	tile := m.Grid[y][x]
-	return tile != Block
-}
-
-// Function: return start pixel (both dimension) of a tile insde of the player
-// tileset based on what action it is
-func GetPlayerCoord(actionType, dir, frame int) (x, y int) {
-	// From the way the player tile set is set up row 2 contains all the
-	// walking animation tyles. The first 6 tiles of row 2 is moving right.
-	// Next 6 is moving up, next 6 is moving left, and next 6 is moving down
-	// Row 1 of tileset is idle
-	var playerGridX, playerGridY int
-	playerGridX = (dir * 6) + frame
-	if actionType == ActionIdle {
-		//fmt.Printf("Action is Idle.\n")
-		playerGridY = 2
-	} else if actionType == ActionWalk {
-		//fmt.Printf("Action is Walk.\n")
-		playerGridY = 4
-	} else {
-		log.Fatalf("[ERROR] Unknown player action.")
-	}
-
-	return playerGridX * tileSize, playerGridY * tileSize
-}
+//go:embed assets/player-sprites.png
+var playerByteData []byte
+//go:embed assets/parking-lot-collision.csv
+var parkingLotCsvStr string
 
 // Touch Button defines a simple interactive screen bounding box area
 type TouchButton struct {
@@ -182,14 +96,45 @@ type Player struct {
 	AnimProgress float64 // Tracks independent elapsed subframe time vector
 }
 
+// RenderItem holds everything needed for a single draw call for an object
+// This is needed so that the objects can be drawn with depth wrt player
+type RenderItem struct {
+	ID int
+	BaseY int // Y coordinate of the base to the object, i.e. foot
+	ScreenDstX, ScreenDstY int // Coordinate of object on the drawn screen
+	SpriteImg *ebiten.Image
+}
+
+// Scene data structure
+type Scene struct {
+	ID int
+	BgImage *ebiten.Image
+	Collision [][]int
+	WidthPixels float64
+	HeightPixels float64
+	RenderItems []RenderItem
+}
+
 // Game data structure
 type Game struct {
-	Tilemap Tilemap
+	Scenes map[int]*Scene
+	CurrentScene int
 	Player Player
-	Scene int
-	sceneBgImage []*ebiten.Image
 	playerSetImage *ebiten.Image
 	TouchButtons []TouchButton
+	// Queue of render items, reset with slice[:0] to clear length but preserve
+	// underlying array capacity
+	RenderQueue []RenderItem
+}
+
+// Game Method: IsWalkable returns tru if coordinate is within bounds and
+// not wall
+func (g *Game) IsWalkable(x, y int) bool {
+	currentScene := g.Scenes[g.CurrentScene]
+	if x < 0 || x >= len(currentScene.Collision) || y < 0 || y >= len(currentScene.Collision[y]) {
+		return false	// Out-of-bounds
+	}
+	return currentScene.Collision[y][x] != Block
 }
 
 // Game Method: Update
@@ -293,7 +238,7 @@ func (g *Game) Update() error {
 	// Collision check: if walkable, then update player position
 	if moved {
 		g.Player.Dir = activeDir
-		if g.Tilemap.IsWalkable(nextX, nextY) {
+		if g.IsWalkable(nextX, nextY) {
 			g.Player.GridX = nextX
 			g.Player.GridY = nextY
 			g.Player.Action = ActionWalk
@@ -303,12 +248,13 @@ func (g *Game) Update() error {
 		g.Player.AnimFrame = 2
 		g.Player.AnimProgress = 0.0
 	}
-
 	return nil
 }
 
 // Game Method: Draw background (called in Draw method)
 func (g *Game) DrawBackground(screen *ebiten.Image) {
+	// Grab current scene
+	currentScene := g.Scenes[g.CurrentScene]
 	// Keep player focused in screen center
 	playerPixelX := g.Player.GridX * tileSize
 	playerPixelY := g.Player.GridY * tileSize
@@ -318,7 +264,7 @@ func (g *Game) DrawBackground(screen *ebiten.Image) {
 	// Draw call
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(camX, camY)
-	screen.DrawImage(g.sceneBgImage[g.Scene], op)
+	screen.DrawImage(currentScene.BgImage, op)
 }
 
 // Game Method: Draw Player (called in Draw method)
@@ -331,8 +277,6 @@ func (g *Game) DrawPlayer(screen *ebiten.Image) {
 	camY := float64((screenHeight / 2) - playerPixelY - (tileSize / 2))
 	// Get player start coordinate inside of the player tileset
 	pSrcX, pSrcY := GetPlayerCoord(g.Player.Action, g.Player.Dir, g.Player.AnimFrame)
-	//pSrcX := (g.Player.Dir * 6 * tileSize) + g.Player.AnimFrame * tileSize
-	//pSrcY := 4 * tileSize
 	// Get the player rectangle image coordinate
 	pRect := image.Rect(pSrcX, pSrcY, pSrcX + tileSize, pSrcY + 2 * tileSize)
 	// Extract the subimage from the player tileset
@@ -344,6 +288,35 @@ func (g *Game) DrawPlayer(screen *ebiten.Image) {
 	popts.GeoM.Translate(pRenderX, pRenderY)
 	// Draw call
 	screen.DrawImage(playerSprite, popts)
+}
+
+// Game Method: Draw Y-sorted Layer (called in Draw method)
+func (g *Game) DrawYSortedLayer(screen *ebiten.Image) {
+	for _, item := range g.RenderQueue {
+		if item.ID == PlayerID { // If item is player, call DrawPlayer
+			g.DrawPlayer(screen)
+		} else {
+			// Keep player focused in screen center
+			playerPixelX := g.Player.GridX * tileSize
+			playerPixelY := g.Player.GridY * tileSize
+			// Camera position
+			camX := float64((screenWidth / 2) - playerPixelX - (tileSize / 2))
+			camY := float64((screenHeight / 2) - playerPixelY - (tileSize / 2))
+			// Get player start coordinate inside of the player tileset
+			pSrcX, pSrcY, pDstX, pDstY := GetExteriorItemCoord(item.ID)
+			// Get the player rectangle image coordinate
+			pRect := image.Rect(pSrcX, pSrcY, pDstX, pDstY)
+			// Extract the subimage from the player tileset
+			itemSprite := item.SpriteImg.SubImage(pRect).(*ebiten.Image)
+			// Set up the draw options (start point of the draw call)
+			popts := &ebiten.DrawImageOptions{}
+			pRenderX := float64(item.ScreenDstX) + camX
+			pRenderY := float64(item.ScreenDstY) + camY
+			popts.GeoM.Translate(pRenderX, pRenderY)
+			// Draw call
+			screen.DrawImage(itemSprite, popts)
+		}
+	}
 }
 
 // Game Method:  Draw touch buttons for mobile
@@ -365,24 +338,116 @@ func (g *Game) DrawTouchButtons(screen *ebiten.Image) {
 func (g *Game) Draw(screen *ebiten.Image) {
 	// Clear out canvas first
 	screen.Fill(color.RGBA{0, 0, 0, 255})
-
 	// Draw background
 	g.DrawBackground(screen)
-
-	// Draw Player
-	g.DrawPlayer(screen)
-
+	// Set up the Y-sorted layer queue
+	// Clear it first
+	g.RenderQueue = g.RenderQueue[:0]
+	// Push playe to queue
+	g.RenderQueue = append(g.RenderQueue, RenderItem {
+		ID: PlayerID,
+		BaseY: (g.Player.GridY + 1) * tileSize, // player's feet
+		ScreenDstX: g.Player.GridX * tileSize,
+		ScreenDstY: g.Player.GridY * tileSize,
+		SpriteImg: g.playerSetImage,
+	})
+	// Push all the entity in scene
+	for _, item := range g.Scenes[g.CurrentScene].RenderItems {
+		g.RenderQueue = append(g.RenderQueue, item)
+	}
+	// Sort the layer by Y value
+	slices.SortFunc(g.RenderQueue, func(a, b RenderItem) int {
+		return cmp.Compare(a.BaseY, b.BaseY)
+	})	
+	// Draw Y-sorted layer
+	g.DrawYSortedLayer(screen)
 	// Draw virtual buttons
 	g.DrawTouchButtons(screen)
-
 	// Display Tick per second
 	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f", ebiten.ActualTPS()))
-
 }
 
 // Game Method: Layout
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 	return screenWidth, screenHeight
+}
+
+// Helper functions
+// Function: return start pixel (both dimension) of a tile insde of the player
+// tileset based on what action it is
+func GetPlayerCoord(actionType, dir, frame int) (x, y int) {
+	// From the way the player tile set is set up row 2 contains all the
+	// walking animation tyles. The first 6 tiles of row 2 is moving right.
+	// Next 6 is moving up, next 6 is moving left, and next 6 is moving down
+	// Row 1 of tileset is idle
+	var playerGridX, playerGridY int
+	playerGridX = (dir * 6) + frame
+	if actionType == ActionIdle {
+		playerGridY = 2
+	} else if actionType == ActionWalk {
+		playerGridY = 4
+	} else {
+		log.Fatalf("[ERROR] Unknown player action.")
+	}
+	return playerGridX * tileSize, playerGridY * tileSize
+}
+
+// Function to load embedded image
+func loadEmbeddedImage(byteData []byte) *ebiten.Image {
+	// Decode and image from the image file's byte slice.
+	img, _, err := image.Decode(bytes.NewReader(byteData))
+	if err != nil {
+		log.Fatal(err)
+	}
+	return ebiten.NewImageFromImage(img)
+}
+
+// Function to load collision csv
+func loadCollisionCsv(csvStr string) [][]int {
+	// Load scene walkable csv
+	reader := csv.NewReader(strings.NewReader(csvStr))
+	// Loop through each line
+	var collisionCsv [][]int
+	for {
+		record, err := reader.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatal(err)
+		}
+		// Convert each string of '0' or '1' to an integer
+		var intRow []int
+		for _, val := range record {
+			num, err := strconv.Atoi(val)
+			if err != nil {
+				log.Fatal(err)
+			}
+			intRow = append(intRow, num)
+		}
+		collisionCsv = append(collisionCsv, intRow)
+	}
+	return collisionCsv
+}
+
+// Global declaration of RenderItems
+var exteriorImage *ebiten.Image
+
+func GetExteriorItemCoord(itemID int) (int, int, int, int) {
+	var GridSrcX, GridSrcY, GridDstX, GridDstY int
+	switch itemID {
+	case TreeID:
+		GridSrcX = 33
+		GridSrcY = 10
+		GridDstX = GridSrcX + 1
+		GridDstY = GridSrcY + 2
+	default:
+		GridSrcX = 0
+		GridDstX = 1
+		GridSrcY = 0
+		GridDstY = 1
+	}
+	return GridSrcX * tileSize, GridSrcY * tileSize, GridDstX * tileSize, GridDstY * tileSize
 }
 
 // Main
@@ -391,6 +456,66 @@ func main() {
 	ebiten.SetWindowSize(screenWidth * 3, screenHeight * 3)
 	ebiten.SetWindowTitle("Tiles (Ebitengine Demo)")
 	ebiten.SetTPS(30)
+
+	// Read in assets
+	exteriorImage := loadEmbeddedImage(exteriorByteData)
+	parkingLotBg := loadEmbeddedImage(parkingLotByteData)
+	playerSetImage := loadEmbeddedImage(playerByteData)
+
+	// Build scene registry index container map
+	gameScenes := make(map[int]*Scene)
+	// Scene: Parking Lot
+	gameScenes[SceneParkingLot] = &Scene {
+		ID: SceneParkingLot,
+		BgImage: parkingLotBg,
+		Collision: loadCollisionCsv(parkingLotCsvStr),
+		WidthPixels: float64(parkingLotBg.Bounds().Dx()),
+		HeightPixels: float64(parkingLotBg.Bounds().Dy()),
+		RenderItems: []RenderItem {
+			{
+				ID: TreeID,
+				BaseY: 21 * tileSize, // base of tree
+				ScreenDstX: 1 * tileSize,
+				ScreenDstY: 20 * tileSize,
+				SpriteImg: exteriorImage,
+			},
+			{
+				ID: TreeID,
+				BaseY: 21 * tileSize, // base of tree
+				ScreenDstX: 9 * tileSize,
+				ScreenDstY: 20 * tileSize,
+				SpriteImg: exteriorImage,
+			},
+			{
+				ID: TreeID,
+				BaseY: 19 * tileSize, // base of tree
+				ScreenDstX: 16 * tileSize,
+				ScreenDstY: 18 * tileSize,
+				SpriteImg: exteriorImage,
+			},
+			{
+				ID: TreeID,
+				BaseY: 11 * tileSize, // base of tree
+				ScreenDstX: 5 * tileSize,
+				ScreenDstY: 10 * tileSize,
+				SpriteImg: exteriorImage,
+			},
+			{
+				ID: TreeID,
+				BaseY: 11 * tileSize, // base of tree
+				ScreenDstX: 13 * tileSize,
+				ScreenDstY: 10 * tileSize,
+				SpriteImg: exteriorImage,
+			},
+			{
+				ID: TreeID,
+				BaseY: 9 * tileSize, // base of tree
+				ScreenDstX: 16 * tileSize,
+				ScreenDstY: 8 * tileSize,
+				SpriteImg: exteriorImage,
+			},
+		},
+	}
 
 	// Initialize player start postion on scene in grid units
 	playerStartX := 5
@@ -433,12 +558,9 @@ func main() {
 
 	// Instantiate game state
 	g := &Game {
-		Tilemap: Tilemap {
-			Grid: walkableCsv,
-		},
-		sceneBgImage: sceneBgImage,
+		Scenes: gameScenes,
+		CurrentScene: SceneParkingLot,
 		playerSetImage: playerSetImage,
-		Scene: 0,
 		Player: Player {
 			GridX: playerStartX, // Player start position in scene in grid unit
 			GridY: playerStartY,
