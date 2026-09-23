@@ -166,44 +166,44 @@ func init() {
 		RenderItems: []RenderItem {
 			{
 				ID: TreeID,
-				BaseY: 20 * tileSize, // base of tree
+				BaseY: 19 * tileSize, // base of tree
 				ScreenDstX: 3 * tileSize,
-				ScreenDstY: 19 * tileSize,
+				ScreenDstY: 18 * tileSize,
 				SpriteImg: exteriorImage,
 			},
 			{
 				ID: TreeID,
-				BaseY: 16 * tileSize, // base of tree
+				BaseY: 15 * tileSize, // base of tree
 				ScreenDstX: 3 * tileSize,
-				ScreenDstY: 15 * tileSize,
+				ScreenDstY: 14 * tileSize,
 				SpriteImg: exteriorImage,
 			},
 			{
 				ID: TreeID,
-				BaseY: 8 * tileSize, // base of tree
+				BaseY: 7 * tileSize, // base of tree
 				ScreenDstX: 4 * tileSize,
-				ScreenDstY: 7 * tileSize,
+				ScreenDstY: 6 * tileSize,
 				SpriteImg: exteriorImage,
 			},
 			{
 				ID: TreeID,
-				BaseY: 7 * tileSize, // base of tree
+				BaseY: 6 * tileSize, // base of tree
 				ScreenDstX: 6 * tileSize,
-				ScreenDstY: 6 * tileSize,
-				SpriteImg: exteriorImage,
-			},
-			{
-				ID: TreeID,
-				BaseY: 8 * tileSize, // base of tree
-				ScreenDstX: 8 * tileSize,
-				ScreenDstY: 7 * tileSize,
+				ScreenDstY: 5 * tileSize,
 				SpriteImg: exteriorImage,
 			},
 			{
 				ID: TreeID,
 				BaseY: 7 * tileSize, // base of tree
-				ScreenDstX: 10 * tileSize,
+				ScreenDstX: 8 * tileSize,
 				ScreenDstY: 6 * tileSize,
+				SpriteImg: exteriorImage,
+			},
+			{
+				ID: TreeID,
+				BaseY: 6 * tileSize, // base of tree
+				ScreenDstX: 10 * tileSize,
+				ScreenDstY: 5 * tileSize,
 				SpriteImg: exteriorImage,
 			},
 		},
