@@ -90,6 +90,14 @@ type RenderItem struct {
 	SpriteImg *ebiten.Image
 }
 
+// WarpTrigger defines a specific tile on the current scene where there is a
+// transition
+type WarpTrigger struct {
+	DespawnX, DespawnY int // Coordinate of tile in current scene in grid unit
+	SpawnX, SpawnY int // Coordinate of tile in next scene in grid unit
+	TargetScene int // ID of next scene
+}
+
 // Scene data structure
 type Scene struct {
 	ID int
@@ -98,6 +106,7 @@ type Scene struct {
 	WidthPixels float64
 	HeightPixels float64
 	RenderItems []RenderItem
+	WarpTriggers []WarpTrigger
 }
 
 // Game data structure
@@ -233,6 +242,16 @@ func (g *Game) Update() error {
 			g.Player.Action = ActionWalk
 		}
 	} else {
+		// Check if next tile is a WarpTrigger
+		for _, trigger := range g.Scenes[g.CurrentScene].WarpTriggers {
+			if nextX == trigger.DespawnX && nextY == trigger.DespawnY {
+				fmt.Printf("Transition triggered: nextX: %d\tnextY: %d\n", nextX, nextY)
+				g.CurrentScene = trigger.TargetScene
+				g.Player.GridX = trigger.SpawnX
+				g.Player.GridY = trigger.SpawnY
+				fmt.Printf("Transition triggered: GridX: %d\tGridY: %d\n", g.Player.GridX, g.Player.GridY)
+			}
+		}
 		// If no key is held then we reset player to idle
 		g.Player.AnimFrame = 2
 		g.Player.AnimProgress = 0.0

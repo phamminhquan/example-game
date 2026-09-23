@@ -97,45 +97,61 @@ func init() {
 		RenderItems: []RenderItem {
 			{
 				ID: TreeID,
-				BaseY: 23 * tileSize, // base of tree
+				BaseY: 24 * tileSize, // base of tree
 				ScreenDstX: 2 * tileSize,
-				ScreenDstY: 22 * tileSize,
+				ScreenDstY: 23 * tileSize,
 				SpriteImg: exteriorImage,
 			},
 			{
 				ID: TreeID,
-				BaseY: 23 * tileSize, // base of tree
+				BaseY: 24 * tileSize, // base of tree
 				ScreenDstX: 10 * tileSize,
-				ScreenDstY: 22 * tileSize,
+				ScreenDstY: 23 * tileSize,
 				SpriteImg: exteriorImage,
 			},
 			{
 				ID: TreeID,
-				BaseY: 21 * tileSize, // base of tree
+				BaseY: 22 * tileSize, // base of tree
 				ScreenDstX: 17 * tileSize,
-				ScreenDstY: 20 * tileSize,
+				ScreenDstY: 21 * tileSize,
 				SpriteImg: exteriorImage,
 			},
 			{
 				ID: TreeID,
-				BaseY: 13 * tileSize, // base of tree
+				BaseY: 14 * tileSize, // base of tree
 				ScreenDstX: 6 * tileSize,
-				ScreenDstY: 12 * tileSize,
+				ScreenDstY: 13 * tileSize,
 				SpriteImg: exteriorImage,
 			},
 			{
 				ID: TreeID,
-				BaseY: 13 * tileSize, // base of tree
+				BaseY: 14 * tileSize, // base of tree
 				ScreenDstX: 14 * tileSize,
-				ScreenDstY: 12 * tileSize,
+				ScreenDstY: 13 * tileSize,
 				SpriteImg: exteriorImage,
 			},
 			{
 				ID: TreeID,
-				BaseY: 11 * tileSize, // base of tree
+				BaseY: 12 * tileSize, // base of tree
 				ScreenDstX: 17 * tileSize,
-				ScreenDstY: 10 * tileSize,
+				ScreenDstY: 11 * tileSize,
 				SpriteImg: exteriorImage,
+			},
+		},
+		WarpTriggers: []WarpTrigger {
+			{
+				DespawnX: 1,
+				DespawnY: 1,
+				SpawnX: 4,
+				SpawnY: 20,
+				TargetScene: SceneCourtYard,
+			},
+			{
+				DespawnX: 2,
+				DespawnY: 1,
+				SpawnX: 5,
+				SpawnY: 20,
+				TargetScene: SceneCourtYard,
 			},
 		},
 	}
@@ -150,45 +166,61 @@ func init() {
 		RenderItems: []RenderItem {
 			{
 				ID: TreeID,
-				BaseY: 19 * tileSize, // base of tree
-				ScreenDstX: 2 * tileSize,
-				ScreenDstY: 18 * tileSize,
-				SpriteImg: exteriorImage,
-			},
-			{
-				ID: TreeID,
-				BaseY: 15 * tileSize, // base of tree
-				ScreenDstX: 2 * tileSize,
-				ScreenDstY: 14 * tileSize,
-				SpriteImg: exteriorImage,
-			},
-			{
-				ID: TreeID,
-				BaseY: 7 * tileSize, // base of tree
+				BaseY: 20 * tileSize, // base of tree
 				ScreenDstX: 3 * tileSize,
-				ScreenDstY: 6 * tileSize,
+				ScreenDstY: 19 * tileSize,
 				SpriteImg: exteriorImage,
 			},
 			{
 				ID: TreeID,
-				BaseY: 6 * tileSize, // base of tree
-				ScreenDstX: 5 * tileSize,
-				ScreenDstY: 5 * tileSize,
+				BaseY: 16 * tileSize, // base of tree
+				ScreenDstX: 3 * tileSize,
+				ScreenDstY: 15 * tileSize,
+				SpriteImg: exteriorImage,
+			},
+			{
+				ID: TreeID,
+				BaseY: 8 * tileSize, // base of tree
+				ScreenDstX: 4 * tileSize,
+				ScreenDstY: 7 * tileSize,
 				SpriteImg: exteriorImage,
 			},
 			{
 				ID: TreeID,
 				BaseY: 7 * tileSize, // base of tree
-				ScreenDstX: 7 * tileSize,
+				ScreenDstX: 6 * tileSize,
 				ScreenDstY: 6 * tileSize,
 				SpriteImg: exteriorImage,
 			},
 			{
 				ID: TreeID,
-				BaseY: 6 * tileSize, // base of tree
-				ScreenDstX: 9 * tileSize,
-				ScreenDstY: 5 * tileSize,
+				BaseY: 8 * tileSize, // base of tree
+				ScreenDstX: 8 * tileSize,
+				ScreenDstY: 7 * tileSize,
 				SpriteImg: exteriorImage,
+			},
+			{
+				ID: TreeID,
+				BaseY: 7 * tileSize, // base of tree
+				ScreenDstX: 10 * tileSize,
+				ScreenDstY: 6 * tileSize,
+				SpriteImg: exteriorImage,
+			},
+		},
+		WarpTriggers: []WarpTrigger {
+			{
+				DespawnX: 4,
+				DespawnY: 21,
+				SpawnX: 1,
+				SpawnY: 2,
+				TargetScene: SceneParkingLot,
+			},
+			{
+				DespawnX: 5,
+				DespawnY: 21,
+				SpawnX: 2,
+				SpawnY: 2,
+				TargetScene: SceneParkingLot,
 			},
 		},
 	}
