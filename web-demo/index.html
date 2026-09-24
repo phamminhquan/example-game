@@ -1,38 +1,48 @@
 <!DOCTYPE html>
-<meta charset="utf-8">
-<!--Force mobile browser to scale the page and disable double tap zoom-->
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
-<title>Example Tile Game</title>
-<style>
-  * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-    user-select: none;
-    -webkit-user-select: none;
-  }
-  html, body {
-    width: 100%;
-    height: 100%;
-    background-color: #000; /* Black bars on the left and right */
-    overflow: hidden;
-    /* Flexbox centers the canvas both vertically and horizontally */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-  canvas {
-    display: block;
-    /* Force the canvas to match the exact phone height in landscape */
-    height: 100vh;
-    /* Scale the width automatically */
-    width: calc(100vh * (432 / 240));
-    /* Safety fallback: if phone is ultra-wide, ensure it doesn't clip */
-    max-width: 100vw;
-    max-height: 100vh;
-    /* Keep pixel art perfectly crisp on high-res */
-    image-rendering: pixelated;
-    image-rendering: crisp-edges;
-  }
-</style>
-<iframe src="main.html" width="640" height="480"></iframe>
+<html>
+<head>
+    <meta charset="utf-8">
+    <!-- Forces the mobile browser to render the page at the device's native scale -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Example Game</title>
+    
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        html, body {
+            width: 100%;
+            height: 100%;
+            background-color: #000; /* Black bars on the sides if the screen is ultra-wide */
+            overflow: hidden;
+            display: flex;
+            justify-content: center; 
+            align-items: center;
+        }
+        /* Targets the canvas that your Go binary automatically creates */
+        canvas {
+            display: block;
+            height: 100vh; 
+            width: calc(100vh * (432 / 240)); 
+            max-width: 100vw;
+            max-height: 100vh;
+            /* Keeps pixel-art tiles from getting blurry on high-DPI phone screens */
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+    </style>
+</head>
+<body>
+  <script src="wasm_exec.js"></script>
+  <script>
+    const go = new Go();
+    WebAssembly.instantiateStreaming(fetch("main.wasm"), go.importObject).then(result => {
+        go.run(result.instance);
+    });
+  </script>
+</body>
+</html>
