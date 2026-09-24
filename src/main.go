@@ -41,6 +41,8 @@ const (
 	DirUp // 1
 	DirLeft // 2
 	DirDown // 3
+	ActA // 4
+	ActB // 5
 )
 
 // Player movespeed
@@ -204,6 +206,16 @@ func (g *Game) Update() error {
 		fmt.Printf("Key Press: Arrow Down\n")
 		nextY++
 		activeDir = DirDown
+		moved = true
+	} else if ebiten.IsKeyPressed(ebiten.KeyA) {
+		fmt.Printf("Key Press: A\n")
+		nextX--
+		activeDir = DirLeft
+		moved = true
+	} else if ebiten.IsKeyPressed(ebiten.KeyD) {
+		fmt.Printf("Key Press: D\n")
+		nextX++
+		activeDir = DirRight
 		moved = true
 	}
 

@@ -1,6 +1,9 @@
 package main
 
 import (
+	"sync"
+	"fmt"
+	"time"
 	"encoding/csv"
 	"io"
 	"strconv"
@@ -77,21 +80,55 @@ func loadCollisionCsv(csvStr string) [][]int {
 	return collisionCsv
 }
 
+var Time time.Time
+var parkingLotCollision [][]int
+var courtYardCollision [][]int
+
+var wg sync.WaitGroup
+
 // Init function is executed automatically before main
 func init() {
 	// Read in assets
-	exteriorImage = loadEmbeddedImage(exteriorByteData)
-	parkingLotBg = loadEmbeddedImage(parkingLotByteData)
-	courtYardBg = loadEmbeddedImage(courtYardByteData)
-	playerSetImage = loadEmbeddedImage(playerByteData)
+	Time = time.Now()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		exteriorImage = loadEmbeddedImage(exteriorByteData)
+	}()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		parkingLotBg = loadEmbeddedImage(parkingLotByteData)
+	}()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		courtYardBg = loadEmbeddedImage(courtYardByteData)
+	}()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		playerSetImage = loadEmbeddedImage(playerByteData)
+	}()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		parkingLotCollision = loadCollisionCsv(parkingLotCsvStr)
+	}()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		courtYardCollision = loadCollisionCsv(courtYardCsvStr)
+	}()
+	wg.Wait()
+	fmt.Printf("Time elasped: %s\n", time.Since(Time))
 
 	// Build scene registry index container map
-	//gameScenes := make(map[int]*Scene)
 	// Scene: Parking Lot
 	gameScenes[SceneParkingLot] = &Scene {
 		ID: SceneParkingLot,
 		BgImage: parkingLotBg,
-		Collision: loadCollisionCsv(parkingLotCsvStr),
+		Collision: parkingLotCollision,
 		WidthPixels: float64(parkingLotBg.Bounds().Dx()),
 		HeightPixels: float64(parkingLotBg.Bounds().Dy()),
 		RenderItems: []RenderItem {
@@ -160,7 +197,7 @@ func init() {
 	gameScenes[SceneCourtYard] = &Scene {
 		ID: SceneCourtYard,
 		BgImage: courtYardBg,
-		Collision: loadCollisionCsv(courtYardCsvStr),
+		Collision: courtYardCollision,
 		WidthPixels: float64(courtYardBg.Bounds().Dx()),
 		HeightPixels: float64(courtYardBg.Bounds().Dy()),
 		RenderItems: []RenderItem {
@@ -227,33 +264,49 @@ func init() {
 	
 	// Initialize TouchButtons bounding box for mobile
 	buttonSize := 32
-	padX := 40 // Bottom left cluster placement
-	padY := 180 / 2
+	movementPadX := 40 // Bottom left cluster placement
+	movementPadY := 180 / 2
+	interactPadX := screenWidth - 40 // Bottom right placement
+	interactPadY := 180 / 2
 	mobileButtons = []TouchButton {
+		{ // A button
+			boundX: interactPadX,
+			boundY: interactPadY,
+			boundWidth: buttonSize,
+			boundHeight: buttonSize,
+			Dir: DirUp,
+		},
+		{ // B button
+			boundX: interactPadX - 2 * buttonSize,
+			boundY: interactPadY,
+			boundWidth: buttonSize,
+			boundHeight: buttonSize,
+			Dir: DirDown,
+		},
 		{ // Up button
-			boundX: padX,
-			boundY: padY - buttonSize,
+			boundX: movementPadX,
+			boundY: movementPadY - buttonSize,
 			boundWidth: buttonSize,
 			boundHeight: buttonSize,
 			Dir: DirUp,
 		},
 		{ // Down button
-			boundX: padX,
-			boundY: padY + buttonSize,
+			boundX: movementPadX,
+			boundY: movementPadY + buttonSize,
 			boundWidth: buttonSize,
 			boundHeight: buttonSize,
 			Dir: DirDown,
 		},
 		{ // Left button
-			boundX: padX - buttonSize,
-			boundY: padY,
+			boundX: movementPadX - buttonSize,
+			boundY: movementPadY,
 			boundWidth: buttonSize,
 			boundHeight: buttonSize,
 			Dir: DirLeft,
 		},
 		{ // Right button
-			boundX: padX + buttonSize,
-			boundY: padY,
+			boundX: movementPadX + buttonSize,
+			boundY: movementPadY,
 			boundWidth: buttonSize,
 			boundHeight: buttonSize,
 			Dir: DirRight,
