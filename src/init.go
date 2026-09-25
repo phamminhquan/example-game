@@ -281,14 +281,14 @@ func init() {
 	interactPadY := 180 / 2
 	mobileButtons = []TouchButton {
 		{ // A button
-			ButtonType: ButtonInteractA,
+			ButtonType: ButtonInteractD,
 			boundX: interactPadX,
 			boundY: interactPadY,
 			boundWidth: buttonSize,
 			boundHeight: buttonSize,
 		},
 		{ // D button
-			ButtonType: ButtonInteractD,
+			ButtonType: ButtonInteractA,
 			boundX: interactPadX - 2 * buttonSize,
 			boundY: interactPadY,
 			boundWidth: buttonSize,
