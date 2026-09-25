@@ -195,7 +195,7 @@ func (g *Game) Update() error {
 			fmt.Printf("Key Press: D\n")
 			g.CurrentInteractionState = g.Interactions[g.CurrentInteraction].InteractionStates
 		} else {
-			touchIDs := ebiten.JustPressedTouchIDs()
+			touchIDs := inpututil.JustPressedTouchIDs()
 			for _, id := range touchIDs {
 				tx, ty := ebiten.TouchPosition(id) // Grab touch position
 				// Loop through our TouchButtons
