@@ -85,8 +85,8 @@ const (
 	ButtonUp // 1
 	ButtonLeft // 2
 	ButtonDown // 3
-	ButtonInteractA // 4
-	ButtonInteractD // 5
+	ButtonA // 4
+	ButtonD // 5
 )
 
 // Touch Button defines a simple interactive screen bounding box area
@@ -172,14 +172,50 @@ type Game struct {
 // not wall
 func (g *Game) IsWalkable(x, y int) bool {
 	currentScene := g.Scenes[g.CurrentScene]
-	//fmt.Printf("Scene: %d  X: %d  Y: %d  Collision: %d\n",
-	//	currentScene.ID, x, y, currentScene.Collision[y][x])
 	if y <= 0 || y >= len(currentScene.Collision) || x <= 0 || x >= len(currentScene.Collision[y]) {
-		//fmt.Printf("Out of bounds\n")
 		return false	// Out-of-bounds
 	} else {
 		return currentScene.Collision[y][x] != Block
 	}
+}
+
+// Function to get a touch register
+// First return argument is true if there is a touch, otherwise false
+// Second return argument is touch button type
+func (g *Game) GetButton() (bool, int) {
+	// Capture interaction key presses
+	if inpututil.IsKeyJustPressed(ebiten.KeyA) {
+		fmt.Printf("Button Pressed: A\n")
+		return true, ButtonA
+	} else if inpututil.IsKeyJustPressed(ebiten.KeyD) {
+		fmt.Printf("Button Pressed: D\n")
+		return true, ButtonD
+	} else if ebiten.IsKeyPressed(ebiten.KeyArrowLeft) {
+		fmt.Printf("Button Pressed: Left\n")
+		return true, ButtonLeft
+	} else if ebiten.IsKeyPressed(ebiten.KeyArrowRight) {
+		fmt.Printf("Button Pressed: Right\n")
+		return true, ButtonRight
+	} else if ebiten.IsKeyPressed(ebiten.KeyArrowUp) {
+		fmt.Printf("Button Pressed: Up\n")
+		return true, ButtonUp
+	} else if ebiten.IsKeyPressed(ebiten.KeyArrowDown) {
+		fmt.Printf("Button Pressed: Down\n")
+		return true, ButtonDown
+	} else {
+		touchIDs := inpututil.JustPressedTouchIDs()
+		for _, id := range touchIDs {
+			tx, ty := ebiten.TouchPosition(id) // Grab touch position
+			// Loop through our TouchButtons
+			for _, b := range g.TouchButtons {
+				if tx >= b.boundX && tx <= b.boundX + b.boundWidth &&
+				ty >= b.boundY && ty <= b.boundY + b.boundHeight {
+					return true, b.ButtonType
+				}
+			}
+		}
+	}
+	return false, ButtonDown
 }
 
 // Game Method: Update
@@ -187,30 +223,12 @@ func (g *Game) Update() error {
 	// If player is in interaction
 	if g.Player.Action == ActionInteract {
 		// Capture interaction key presses
-		if inpututil.IsKeyJustPressed(ebiten.KeyA) {
-			fmt.Printf("Key Press: A\n")
-			g.CurrentInteractionState++
-			fmt.Printf("Interaction State: %d\n", g.CurrentInteractionState)
-		} else if inpututil.IsKeyJustPressed(ebiten.KeyD) {
-			fmt.Printf("Key Press: D\n")
-			g.CurrentInteractionState = g.Interactions[g.CurrentInteraction].InteractionStates
-		} else {
-			touchIDs := inpututil.JustPressedTouchIDs()
-			for _, id := range touchIDs {
-				tx, ty := ebiten.TouchPosition(id) // Grab touch position
-				// Loop through our TouchButtons
-				for _, b := range g.TouchButtons {
-					if tx >= b.boundX && tx <= b.boundX + b.boundWidth &&
-					ty >= b.boundY && ty <= b.boundY + b.boundHeight {
-						if b.ButtonType == ButtonInteractA {
-							g.CurrentInteractionState++
-						} else if b.ButtonType == ButtonInteractD {
-							g.CurrentInteractionState = g.Interactions[g.CurrentInteraction].InteractionStates
-						}
-						// Stop checking other buttons when this one is a hit
-						break
-					}
-				}
+		isPressed, buttonType := g.GetButton()
+		if isPressed {
+			if buttonType == ButtonA {
+				g.CurrentInteractionState++
+			} else if buttonType == ButtonD {
+				g.CurrentInteractionState = g.Interactions[g.CurrentInteraction].InteractionStates
 			}
 		}
 
@@ -270,64 +288,29 @@ func (g *Game) Update() error {
 	// Capture key presses
 	var activeDir int
 	interacted := false
-	if inpututil.IsKeyJustPressed(ebiten.KeyA) {
-		fmt.Printf("Key Press: A\n")
-		interacted = true
-	} else if ebiten.IsKeyPressed(ebiten.KeyArrowLeft) {
-		fmt.Printf("Key Press: Arrow Left\n")
-		nextX--
-		activeDir = DirLeft
-		moved = true
-	} else if ebiten.IsKeyPressed(ebiten.KeyArrowRight) {
-		fmt.Printf("Key Press: Arrow Right\n")
-		nextX++
-		activeDir = DirRight
-		moved = true
-	} else if ebiten.IsKeyPressed(ebiten.KeyArrowUp) {
-		fmt.Printf("Key Press: Arrow Up\n")
-		nextY--
-		activeDir = DirUp
-		moved = true
-	} else if ebiten.IsKeyPressed(ebiten.KeyArrowDown) {
-		fmt.Printf("Key Press: Arrow Down\n")
-		nextY++
-		activeDir = DirDown
-		moved = true
-	} else { // Check for mobile virtual button inputs// Grab all active finger touch IDs pressed on browser
-		touchIDs := ebiten.TouchIDs()
-		for _, id := range touchIDs {
-			tx, ty := ebiten.TouchPosition(id) // Grab touch position
-			// Loop through our TouchButtons
-			for _, b := range g.TouchButtons {
-				if tx >= b.boundX && tx <= b.boundX + b.boundWidth &&
-				ty >= b.boundY && ty <= b.boundY + b.boundHeight {
-					if b.ButtonType == ButtonLeft {
-						// Finger touch is within bounding box of button
-						activeDir = b.Dir
-						moved = true
-						nextX--
-					} else if b.ButtonType == ButtonRight {
-						activeDir = b.Dir
-						moved = true
-						nextX++
-					} else if b.ButtonType == ButtonUp {
-						activeDir = b.Dir
-						moved = true
-						nextY--
-					} else if b.ButtonType == ButtonDown {
-						activeDir = b.Dir
-						moved = true
-						nextY++
-					} else if b.ButtonType == ButtonInteractA {
-						interacted = true
-					}
-					// Stop checking other buttons when this one is a hit
-					break
-				}
-			}
+	isPressed, buttonType := g.GetButton()
+	if isPressed {
+		if buttonType == ButtonA {
+			interacted = true
+		} else if buttonType == ButtonLeft {
+			nextX--
+			activeDir = DirLeft
+			moved = true
+		} else if buttonType == ButtonRight {
+			nextX++
+			activeDir = DirRight
+			moved = true
+		} else if buttonType == ButtonUp {
+			nextY--
+			activeDir = DirUp
+			moved = true
+		} else if buttonType == ButtonDown {
+			nextY++
+			activeDir = DirDown
+			moved = true
 		}
 	}
-
+	
 	// Checking for first interaction trigger
 	// Interaction is higher priority than movement
 	if interacted {
