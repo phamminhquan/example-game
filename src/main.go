@@ -179,15 +179,15 @@ func (g *Game) IsWalkable(x, y int) bool {
 	}
 }
 
-// Function to get a touch register
+// Function to get a key press (or hold)
 // First return argument is true if there is a touch, otherwise false
 // Second return argument is touch button type
-func (g *Game) GetButton() (bool, int) {
+func (g *Game) GetButtonPressed() (bool, int) {
 	// Capture interaction key presses
-	if inpututil.IsKeyJustPressed(ebiten.KeyA) {
+	if ebiten.IsKeyPressed(ebiten.KeyA) {
 		fmt.Printf("Button Pressed: A\n")
 		return true, ButtonA
-	} else if inpututil.IsKeyJustPressed(ebiten.KeyD) {
+	} else if ebiten.IsKeyPressed(ebiten.KeyD) {
 		fmt.Printf("Button Pressed: D\n")
 		return true, ButtonD
 	} else if ebiten.IsKeyPressed(ebiten.KeyArrowLeft) {
@@ -200,6 +200,45 @@ func (g *Game) GetButton() (bool, int) {
 		fmt.Printf("Button Pressed: Up\n")
 		return true, ButtonUp
 	} else if ebiten.IsKeyPressed(ebiten.KeyArrowDown) {
+		fmt.Printf("Button Pressed: Down\n")
+		return true, ButtonDown
+	} else {
+		touchIDs := ebiten.TouchIDs()
+		for _, id := range touchIDs {
+			tx, ty := ebiten.TouchPosition(id) // Grab touch position
+			// Loop through our TouchButtons
+			for _, b := range g.TouchButtons {
+				if tx >= b.boundX && tx <= b.boundX + b.boundWidth &&
+				ty >= b.boundY && ty <= b.boundY + b.boundHeight {
+					return true, b.ButtonType
+				}
+			}
+		}
+	}
+	return false, ButtonDown
+}
+
+// Function to get a key press (first press)
+// First return argument is true if there is a touch, otherwise false
+// Second return argument is touch button type
+func (g *Game) GetButtonJustPressed() (bool, int) {
+	// Capture interaction key presses
+	if inpututil.IsKeyJustPressed(ebiten.KeyA) {
+		fmt.Printf("Button Pressed: A\n")
+		return true, ButtonA
+	} else if inpututil.IsKeyJustPressed(ebiten.KeyD) {
+		fmt.Printf("Button Pressed: D\n")
+		return true, ButtonD
+	} else if inpututil.IsKeyJustPressed(ebiten.KeyArrowLeft) {
+		fmt.Printf("Button Pressed: Left\n")
+		return true, ButtonLeft
+	} else if inpututil.IsKeyJustPressed(ebiten.KeyArrowRight) {
+		fmt.Printf("Button Pressed: Right\n")
+		return true, ButtonRight
+	} else if inpututil.IsKeyJustPressed(ebiten.KeyArrowUp) {
+		fmt.Printf("Button Pressed: Up\n")
+		return true, ButtonUp
+	} else if inpututil.IsKeyJustPressed(ebiten.KeyArrowDown) {
 		fmt.Printf("Button Pressed: Down\n")
 		return true, ButtonDown
 	} else {
@@ -222,8 +261,8 @@ func (g *Game) GetButton() (bool, int) {
 func (g *Game) Update() error {
 	// If player is in interaction
 	if g.Player.Action == ActionInteract {
-		// Capture interaction key presses
-		isPressed, buttonType := g.GetButton()
+		// Capture interaction key presses (first press only)
+		isPressed, buttonType := g.GetButtonJustPressed()
 		if isPressed {
 			if buttonType == ButtonA {
 				g.CurrentInteractionState++
@@ -285,31 +324,55 @@ func (g *Game) Update() error {
 	nextX, nextY := g.Player.GridX, g.Player.GridY
 	moved := false
 
-	// Capture key presses
+	// Capture key presses (press and hold for movement and press only for interaction)
 	var activeDir int
 	interacted := false
-	isPressed, buttonType := g.GetButton()
+	isJustPressed, justPressedButtonType := g.GetButtonPressed()
+	isPressed, pressedButtonType := g.GetButtonJustPressed()
 	if isPressed {
-		if buttonType == ButtonA {
+		if pressedButtonType == ButtonA {
 			interacted = true
-		} else if buttonType == ButtonLeft {
+		}
+	} else if isJustPressed {
+		if justPressedButtonType == ButtonLeft {
 			nextX--
 			activeDir = DirLeft
 			moved = true
-		} else if buttonType == ButtonRight {
+		} else if justPressedButtonType == ButtonRight {
 			nextX++
 			activeDir = DirRight
 			moved = true
-		} else if buttonType == ButtonUp {
+		} else if justPressedButtonType == ButtonUp {
 			nextY--
 			activeDir = DirUp
 			moved = true
-		} else if buttonType == ButtonDown {
+		} else if justPressedButtonType == ButtonDown {
 			nextY++
 			activeDir = DirDown
 			moved = true
 		}
 	}
+	//if isPressed {
+	//	if buttonType == ButtonA {
+	//		interacted = true
+	//	} else if buttonType == ButtonLeft {
+	//		nextX--
+	//		activeDir = DirLeft
+	//		moved = true
+	//	} else if buttonType == ButtonRight {
+	//		nextX++
+	//		activeDir = DirRight
+	//		moved = true
+	//	} else if buttonType == ButtonUp {
+	//		nextY--
+	//		activeDir = DirUp
+	//		moved = true
+	//	} else if buttonType == ButtonDown {
+	//		nextY++
+	//		activeDir = DirDown
+	//		moved = true
+	//	}
+	//}
 	
 	// Checking for first interaction trigger
 	// Interaction is higher priority than movement
