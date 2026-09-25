@@ -201,6 +201,30 @@ func init() {
 				PlayerDir: DirUp,
 				InteractionID: 0,
 			},
+			{
+				GridX: 14,
+				GridY: 21,
+				PlayerDir: DirRight,
+				InteractionID: 1,
+			},
+			{
+				GridX: 14,
+				GridY: 22,
+				PlayerDir: DirRight,
+				InteractionID: 1,
+			},
+			{
+				GridX: 15,
+				GridY: 20,
+				PlayerDir: DirDown,
+				InteractionID: 1,
+			},
+			{
+				GridX: 16,
+				GridY: 20,
+				PlayerDir: DirDown,
+				InteractionID: 1,
+			},
 		},
 	}
 	
@@ -281,14 +305,14 @@ func init() {
 	interactPadY := 180 / 2
 	mobileButtons = []TouchButton {
 		{ // A button
-			ButtonType: ButtonInteractD,
+			ButtonType: ButtonInteractA,
 			boundX: interactPadX,
 			boundY: interactPadY,
 			boundWidth: buttonSize,
 			boundHeight: buttonSize,
 		},
 		{ // D button
-			ButtonType: ButtonInteractA,
+			ButtonType: ButtonInteractD,
 			boundX: interactPadX - 2 * buttonSize,
 			boundY: interactPadY,
 			boundWidth: buttonSize,
@@ -336,6 +360,15 @@ func init() {
 			InteractionStates: 1,
 			InteractionText: []string {
 				"Hello World!",
+			},
+		},
+		{
+			InteractionID: 1,
+			InteractionType: InteractionTypeConversation,
+			InteractionStates: 2,
+			InteractionText: []string {
+				"Whose car is this?",
+				"It's a Florida plate.",
 			},
 		},
 	}
