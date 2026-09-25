@@ -42,6 +42,15 @@ var playerSetImage *ebiten.Image
 // Global variable storing the virtual touch buttons info
 var mobileButtons []TouchButton
 
+// Global variables storing the collision csv and concurrency wait group
+var Time time.Time
+var parkingLotCollision [][]int
+var courtYardCollision [][]int
+var wg sync.WaitGroup
+
+// Global variable storing interactions
+var gameInteractions []Interaction
+
 // Function to load embedded image
 func loadEmbeddedImage(byteData []byte) *ebiten.Image {
 	// Decode and image from the image file's byte slice.
@@ -79,12 +88,6 @@ func loadCollisionCsv(csvStr string) [][]int {
 	}
 	return collisionCsv
 }
-
-var Time time.Time
-var parkingLotCollision [][]int
-var courtYardCollision [][]int
-
-var wg sync.WaitGroup
 
 // Init function is executed automatically before main
 func init() {
@@ -191,6 +194,14 @@ func init() {
 				TargetScene: SceneCourtYard,
 			},
 		},
+		InteractionTriggers: []InteractionTrigger {
+			{
+				GridX: 3,
+				GridY: 7,
+				PlayerDir: DirUp,
+				InteractionID: 0,
+			},
+		},
 	}
 	
 	// Scene: Court Yard
@@ -270,20 +281,21 @@ func init() {
 	interactPadY := 180 / 2
 	mobileButtons = []TouchButton {
 		{ // A button
+			ButtonType: ButtonInteractA,
 			boundX: interactPadX,
 			boundY: interactPadY,
 			boundWidth: buttonSize,
 			boundHeight: buttonSize,
-			Dir: DirUp,
 		},
-		{ // B button
+		{ // D button
+			ButtonType: ButtonInteractD,
 			boundX: interactPadX - 2 * buttonSize,
 			boundY: interactPadY,
 			boundWidth: buttonSize,
 			boundHeight: buttonSize,
-			Dir: DirDown,
 		},
 		{ // Up button
+			ButtonType: ButtonUp,
 			boundX: movementPadX,
 			boundY: movementPadY - buttonSize,
 			boundWidth: buttonSize,
@@ -291,6 +303,7 @@ func init() {
 			Dir: DirUp,
 		},
 		{ // Down button
+			ButtonType: ButtonDown,
 			boundX: movementPadX,
 			boundY: movementPadY + buttonSize,
 			boundWidth: buttonSize,
@@ -298,6 +311,7 @@ func init() {
 			Dir: DirDown,
 		},
 		{ // Left button
+			ButtonType: ButtonLeft,
 			boundX: movementPadX - buttonSize,
 			boundY: movementPadY,
 			boundWidth: buttonSize,
@@ -305,11 +319,24 @@ func init() {
 			Dir: DirLeft,
 		},
 		{ // Right button
+			ButtonType: ButtonRight,
 			boundX: movementPadX + buttonSize,
 			boundY: movementPadY,
 			boundWidth: buttonSize,
 			boundHeight: buttonSize,
 			Dir: DirRight,
+		},
+	}
+
+	// Initialize interactions
+	gameInteractions = []Interaction {
+		{
+			InteractionID: 0,
+			InteractionType: InteractionTypeConversation,
+			InteractionStates: 1,
+			InteractionText: []string {
+				"Hello World!",
+			},
 		},
 	}
 }

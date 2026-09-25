@@ -13,6 +13,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
@@ -57,16 +58,40 @@ const (
 const (
 	ActionIdle = iota // 0
 	ActionWalk // 1
+	ActionInteract // 2
 )
 
-// Renderable Item ID
+// Player interaction keys
+const (
+	InteractA = iota // 0
+	InteractD // 1
+)
+
+// Interaction types
+const (
+	InteractionTypeConversation = iota // 0
+	InteractionTypeMiniGame0 // 1
+)
+
+	// Renderable Item ID
 const (
 	PlayerID = iota // 0
 	TreeID // 1
 )
 
+// Type of button
+const (
+	ButtonRight = iota // 0
+	ButtonUp // 1
+	ButtonLeft // 2
+	ButtonDown // 3
+	ButtonInteractA // 4
+	ButtonInteractD // 5
+)
+
 // Touch Button defines a simple interactive screen bounding box area
 type TouchButton struct {
+	ButtonType int // movement or interaction A or interaction D
 	boundX, boundY, boundWidth, boundHeight int // bounding box
 	Dir int // maps to DirLeft, DirRight, DirUp, DirDown
 }
@@ -100,6 +125,22 @@ type WarpTrigger struct {
 	TargetScene int // ID of next scene
 }
 
+// InteractionTrigger defines a specific tile one the current scene where
+// there is an interaction
+type InteractionTrigger struct {
+	GridX, GridY int // Coordinate of tile in current scene in grid unit
+	PlayerDir int // Direction that player is facing
+	InteractionID int // ID of interaction (referenced to interaction structure)
+}
+
+// Interaction structure
+type Interaction struct {
+	InteractionID int // ID of interaction (referenced from the interaction trigger)
+	InteractionType int // type of interaction (conversation, minigame, etc)
+	InteractionStates int // number of states of interaction
+	InteractionText []string // scripts for texbox type interaction
+}
+
 // Scene data structure
 type Scene struct {
 	ID int
@@ -109,6 +150,7 @@ type Scene struct {
 	HeightPixels float64
 	RenderItems []RenderItem
 	WarpTriggers []WarpTrigger
+	InteractionTriggers []InteractionTrigger
 }
 
 // Game data structure
@@ -121,6 +163,9 @@ type Game struct {
 	// Queue of render items, reset with slice[:0] to clear length but preserve
 	// underlying array capacity
 	RenderQueue []RenderItem
+	Interactions []Interaction
+	CurrentInteraction int
+	CurrentInteractionState int
 }
 
 // Game Method: IsWalkable returns tru if coordinate is within bounds and
@@ -139,6 +184,43 @@ func (g *Game) IsWalkable(x, y int) bool {
 
 // Game Method: Update
 func (g *Game) Update() error {
+	// If player is in interaction
+	if g.Player.Action == ActionInteract {
+		// Capture interaction key presses
+		if inpututil.IsKeyJustPressed(ebiten.KeyA) {
+			fmt.Printf("Key Press: A\n")
+			g.CurrentInteractionState++
+			fmt.Printf("Interaction State: %d\n", g.CurrentInteractionState)
+		} else if inpututil.IsKeyJustPressed(ebiten.KeyD) {
+			fmt.Printf("Key Press: D\n")
+			g.CurrentInteractionState = g.Interactions[g.CurrentInteraction].InteractionStates
+		} else {
+			touchIDs := ebiten.TouchIDs()
+			for _, id := range touchIDs {
+				tx, ty := ebiten.TouchPosition(id) // Grab touch position
+				// Loop through our TouchButtons
+				for _, b := range g.TouchButtons {
+					if tx >= b.boundX && tx <= b.boundX + b.boundWidth &&
+					ty >= b.boundY && ty <= b.boundY + b.boundHeight {
+						if b.ButtonType == ButtonInteractA {
+							g.CurrentInteractionState++
+						} else if b.ButtonType == ButtonInteractD {
+							g.CurrentInteractionState = g.Interactions[g.CurrentInteraction].InteractionStates
+						}
+						// Stop checking other buttons when this one is a hit
+						break
+					}
+				}
+			}
+		}
+
+		// Reset to idle if done with interaction
+		if g.CurrentInteractionState == g.Interactions[g.CurrentInteraction].InteractionStates {
+			g.Player.Action = ActionIdle
+		}
+		return nil
+	}
+
 	// If player is moving , handel visual sliding interpolation
 	if g.Player.Action == ActionWalk {
 		targetPixelX := float64(g.Player.GridX * tileSize)
@@ -187,7 +269,11 @@ func (g *Game) Update() error {
 
 	// Capture key presses
 	var activeDir int
-	if ebiten.IsKeyPressed(ebiten.KeyArrowLeft) {
+	interacted := false
+	if inpututil.IsKeyJustPressed(ebiten.KeyA) {
+		fmt.Printf("Key Press: A\n")
+		interacted = true
+	} else if ebiten.IsKeyPressed(ebiten.KeyArrowLeft) {
 		fmt.Printf("Key Press: Arrow Left\n")
 		nextX--
 		activeDir = DirLeft
@@ -207,21 +293,7 @@ func (g *Game) Update() error {
 		nextY++
 		activeDir = DirDown
 		moved = true
-	} else if ebiten.IsKeyPressed(ebiten.KeyA) {
-		fmt.Printf("Key Press: A\n")
-		nextX--
-		activeDir = DirLeft
-		moved = true
-	} else if ebiten.IsKeyPressed(ebiten.KeyD) {
-		fmt.Printf("Key Press: D\n")
-		nextX++
-		activeDir = DirRight
-		moved = true
-	}
-
-	// Check for mobile virtual button inputs
-	if !moved {
-		// Grab all active finger touch IDs pressed on browser
+	} else { // Check for mobile virtual button inputs// Grab all active finger touch IDs pressed on browser
 		touchIDs := ebiten.TouchIDs()
 		for _, id := range touchIDs {
 			tx, ty := ebiten.TouchPosition(id) // Grab touch position
@@ -229,14 +301,25 @@ func (g *Game) Update() error {
 			for _, b := range g.TouchButtons {
 				if tx >= b.boundX && tx <= b.boundX + b.boundWidth &&
 				ty >= b.boundY && ty <= b.boundY + b.boundHeight {
-					// Finger touch is within bounding box of button
-					activeDir = b.Dir
-					moved = true
-					switch activeDir {
-						case DirLeft: nextX--
-						case DirRight: nextX++
-						case DirUp: nextY--
-						case DirDown: nextY++
+					if b.ButtonType == ButtonLeft {
+						// Finger touch is within bounding box of button
+						activeDir = b.Dir
+						moved = true
+						nextX--
+					} else if b.ButtonType == ButtonRight {
+						activeDir = b.Dir
+						moved = true
+						nextX++
+					} else if b.ButtonType == ButtonUp {
+						activeDir = b.Dir
+						moved = true
+						nextY--
+					} else if b.ButtonType == ButtonDown {
+						activeDir = b.Dir
+						moved = true
+						nextY++
+					} else if b.ButtonType == ButtonInteractA {
+						interacted = true
 					}
 					// Stop checking other buttons when this one is a hit
 					break
@@ -245,15 +328,22 @@ func (g *Game) Update() error {
 		}
 	}
 
-	// Collision check: if walkable, then update player position
-	if moved {
-		g.Player.Dir = activeDir
-		if g.IsWalkable(nextX, nextY) {
-			g.Player.GridX = nextX
-			g.Player.GridY = nextY
-			g.Player.Action = ActionWalk
+	// Checking for first interaction trigger
+	// Interaction is higher priority than movement
+	if interacted {
+		fmt.Printf("Interacted : %t\n", interacted)
+		// Check if tile and direction allows for an interaction
+		for _, trigger := range g.Scenes[g.CurrentScene].InteractionTriggers {
+			if g.Player.GridX == trigger.GridX && g.Player.GridY == trigger.GridY &&
+			g.Player.Dir == trigger.PlayerDir {
+				g.Player.Action = ActionInteract
+				g.CurrentInteraction = trigger.InteractionID
+				g.CurrentInteractionState = 0 // start interaction in start state
+			}
 		}
-	} else {
+	} else if moved {
+		// Collision check: if walkable, then update player position
+		g.Player.Dir = activeDir
 		// Check if next tile is a WarpTrigger
 		for _, trigger := range g.Scenes[g.CurrentScene].WarpTriggers {
 			if nextX == trigger.DespawnX && nextY == trigger.DespawnY {
@@ -261,9 +351,15 @@ func (g *Game) Update() error {
 				g.CurrentScene = trigger.TargetScene
 				g.Player.GridX = trigger.SpawnX
 				g.Player.GridY = trigger.SpawnY
+				g.Player.Action = ActionIdle
 				fmt.Printf("Transition triggered: GridX: %d\tGridY: %d\n", g.Player.GridX, g.Player.GridY)
+			} else if g.IsWalkable(nextX, nextY) {
+				g.Player.GridX = nextX
+				g.Player.GridY = nextY
+				g.Player.Action = ActionWalk
 			}
 		}
+	} else {
 		// If no key is held then we reset player to idle
 		g.Player.AnimFrame = 2
 		g.Player.AnimProgress = 0.0
@@ -356,8 +452,6 @@ func (g *Game) DrawTouchButtons(screen *ebiten.Image) {
 
 // Game Method: Draw
 func (g *Game) Draw(screen *ebiten.Image) {
-	// Clear out canvas first
-	screen.Fill(color.RGBA{0, 0, 0, 255})
 	// Draw background
 	g.DrawBackground(screen)
 	// Set up the Y-sorted layer queue
@@ -378,9 +472,31 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	// Sort the layer by Y value
 	slices.SortFunc(g.RenderQueue, func(a, b RenderItem) int {
 		return cmp.Compare(a.BaseY, b.BaseY)
-	})	
+	})
 	// Draw Y-sorted layer
 	g.DrawYSortedLayer(screen)
+	// Check if we're currently in an interaction
+	if g.Player.Action == ActionInteract {
+		// Check if it's a conversation interaction
+		interaction := g.Interactions[g.CurrentInteraction]
+		if interaction.InteractionType == InteractionTypeConversation {
+			// Draw textbox
+			// Set textbox dimensions
+			var boxX float32 = 16
+			var boxY float32 = 160
+			var boxWidth float32 = 400
+			var boxHeight float32 = 64
+			// Draw black background box
+			boxColor := color.NRGBA{0, 0, 0, 200} // white box
+			vector.DrawFilledRect(screen, boxX, boxY, boxWidth, boxHeight, boxColor, false)
+			// Draw white border
+			borderColor := color.NRGBA{255, 255, 255, 255}
+			vector.StrokeRect(screen, boxX, boxY, boxWidth, boxHeight, 1.5, borderColor, false)
+			// Draw text (offset slightly from top left edge)
+			ebitenutil.DebugPrintAt(screen, interaction.InteractionText[g.CurrentInteractionState],
+				int(boxX) + 12, int(boxY) + 12)
+		}
+	}
 	// Draw virtual buttons
 	g.DrawTouchButtons(screen)
 	// Display Tick per second
@@ -417,6 +533,7 @@ func main() {
 			Dir: DirDown,
 		},
 		TouchButtons: mobileButtons,
+		Interactions: gameInteractions,
 	}
 
 	if err := ebiten.RunGame(g); err != nil {

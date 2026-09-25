@@ -14,7 +14,7 @@ func GetPlayerCoord(actionType, dir, frame int) (x, y int) {
 	// Row 1 of tileset is idle
 	var playerGridX, playerGridY int
 	playerGridX = (dir * 6) + frame
-	if actionType == ActionIdle {
+	if actionType == ActionIdle || actionType == ActionInteract {
 		playerGridY = 2
 	} else if actionType == ActionWalk {
 		playerGridY = 4
