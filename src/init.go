@@ -51,6 +51,9 @@ var wg sync.WaitGroup
 // Global variable storing interactions
 var gameInteractions []Interaction
 
+// Global variable storing mini flappy game
+var miniFlappyGame FlappyGame
+
 // Function to load embedded image
 func loadEmbeddedImage(byteData []byte) *ebiten.Image {
 	// Decode and image from the image file's byte slice.
@@ -225,6 +228,12 @@ func init() {
 				PlayerDir: DirDown,
 				InteractionID: 1,
 			},
+			{
+				GridX: 13,
+				GridY: 7,
+				PlayerDir: DirUp,
+				InteractionID: 2,
+			},
 		},
 	}
 	
@@ -361,15 +370,65 @@ func init() {
 			InteractionText: []string {
 				"Hello World!",
 			},
+			ContainMiniGame: false,
+			MiniGameState: 0,
 		},
 		{
 			InteractionID: 1,
 			InteractionType: InteractionTypeConversation,
-			InteractionStates: 2,
+			InteractionStates: 3,
 			InteractionText: []string {
-				"Whose car is this?",
-				"It's a Florida plate.",
+				"Lunch?",
+				"Chipotle or Moe's?",
+				"Moe's.",
+			},
+			ContainMiniGame: false,
+			MiniGameState: 0,
+		},
+		{
+			InteractionID: 2,
+			InteractionType: InteractionTypeMiniGame0,
+			InteractionStates: 3,
+			InteractionText: []string {
+				"Mini Game?",
+				"...",
+				"Done.",
+			},
+			ContainMiniGame: true,
+			MiniGameState: 1,
+		},
+	}
+
+	// Initialize mini flappy game
+	miniFlappyGame = FlappyGame {
+		BgImage: parkingLotBg,
+		WidthPixels: float64(parkingLotBg.Bounds().Dx()),
+		HeightPixels: float64(parkingLotBg.Bounds().Dy()),
+		Obstacle: RenderItem {
+			ID: TreeID,
+			BaseY: 19 * tileSize, // base of tree
+			ScreenDstX: 3 * tileSize,
+			ScreenDstY: 18 * tileSize,
+			SpriteImg: exteriorImage,
+		},
+		CurrentState: StateTitle,
+		Score: 0,
+		TouchButtons: []TouchButton {
+			{ // A button
+				ButtonType: ButtonA,
+				boundX: interactPadX,
+				boundY: interactPadY,
+				boundWidth: buttonSize,
+				boundHeight: buttonSize,
+			},
+			{ // D button
+				ButtonType: ButtonD,
+				boundX: interactPadX - 2 * buttonSize,
+				boundY: interactPadY,
+				boundWidth: buttonSize,
+				boundHeight: buttonSize,
 			},
 		},
+		IsActive: false,
 	}
 }

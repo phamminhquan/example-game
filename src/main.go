@@ -139,6 +139,8 @@ type Interaction struct {
 	InteractionType int // type of interaction (conversation, minigame, etc)
 	InteractionStates int // number of states of interaction
 	InteractionText []string // scripts for texbox type interaction
+	ContainMiniGame bool // does this interaction contain a mini-game
+	MiniGameState int // state in which mini-game occur
 }
 
 // Scene data structure
@@ -166,6 +168,7 @@ type Game struct {
 	Interactions []Interaction
 	CurrentInteraction int
 	CurrentInteractionState int
+	MiniFlappyGame FlappyGame
 }
 
 // Game Method: IsWalkable returns tru if coordinate is within bounds and
@@ -261,13 +264,41 @@ func (g *Game) GetButtonJustPressed() (bool, int) {
 func (g *Game) Update() error {
 	// If player is in interaction
 	if g.Player.Action == ActionInteract {
-		// Capture interaction key presses (first press only)
-		isPressed, buttonType := g.GetButtonJustPressed()
-		if isPressed {
-			if buttonType == ButtonA {
-				g.CurrentInteractionState++
-			} else if buttonType == ButtonD {
-				g.CurrentInteractionState = g.Interactions[g.CurrentInteraction].InteractionStates
+		// If interaction does not contain a mini-game (i.e. conversation)
+		if g.Interactions[g.CurrentInteraction].ContainMiniGame == false {
+			// Capture interaction key presses (first press only)
+			isPressed, buttonType := g.GetButtonJustPressed()
+			if isPressed {
+				fmt.Printf("Interaction does not contain minigame\n")
+				if buttonType == ButtonA {
+					g.CurrentInteractionState++
+				} else if buttonType == ButtonD {
+					g.CurrentInteractionState = g.Interactions[g.CurrentInteraction].InteractionStates
+				}
+			}
+		} else {
+			// Do contain mini-game
+			if g.CurrentInteractionState == g.Interactions[g.CurrentInteraction].MiniGameState {
+				g.MiniFlappyGame.IsActive = true
+				err := g.MiniFlappyGame.Update()
+				if err != nil {
+					log.Fatal(err)
+				}
+				// Check if game is still active
+				if g.MiniFlappyGame.IsActive == false {
+					fmt.Printf("Proceed to next state\n")
+					g.CurrentInteractionState++
+				}
+			} else {
+				// Capture interaction key presses (first press only)
+				isPressed, buttonType := g.GetButtonJustPressed()
+				if isPressed {
+					if buttonType == ButtonA {
+						g.CurrentInteractionState++
+					} else if buttonType == ButtonD {
+						g.CurrentInteractionState = g.Interactions[g.CurrentInteraction].InteractionStates
+					}
+				}
 			}
 		}
 
@@ -352,27 +383,6 @@ func (g *Game) Update() error {
 			moved = true
 		}
 	}
-	//if isPressed {
-	//	if buttonType == ButtonA {
-	//		interacted = true
-	//	} else if buttonType == ButtonLeft {
-	//		nextX--
-	//		activeDir = DirLeft
-	//		moved = true
-	//	} else if buttonType == ButtonRight {
-	//		nextX++
-	//		activeDir = DirRight
-	//		moved = true
-	//	} else if buttonType == ButtonUp {
-	//		nextY--
-	//		activeDir = DirUp
-	//		moved = true
-	//	} else if buttonType == ButtonDown {
-	//		nextY++
-	//		activeDir = DirDown
-	//		moved = true
-	//	}
-	//}
 	
 	// Checking for first interaction trigger
 	// Interaction is higher priority than movement
@@ -385,6 +395,7 @@ func (g *Game) Update() error {
 				g.Player.Action = ActionInteract
 				g.CurrentInteraction = trigger.InteractionID
 				g.CurrentInteractionState = 0 // start interaction in start state
+				//g.MiniFlappyGame.IsActive = true
 			}
 		}
 	} else if moved {
@@ -498,6 +509,14 @@ func (g *Game) DrawTouchButtons(screen *ebiten.Image) {
 
 // Game Method: Draw
 func (g *Game) Draw(screen *ebiten.Image) {
+	// Continue to draw mini-game if we are in a mini-game
+	if g.Player.Action == ActionInteract &&
+	g.Interactions[g.CurrentInteraction].InteractionType == InteractionTypeMiniGame0 {
+		if g.MiniFlappyGame.IsActive {
+			g.MiniFlappyGame.Draw(screen)
+			return
+		}
+	}
 	// Draw background
 	g.DrawBackground(screen)
 	// Set up the Y-sorted layer queue
@@ -525,7 +544,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	if g.Player.Action == ActionInteract {
 		// Check if it's a conversation interaction
 		interaction := g.Interactions[g.CurrentInteraction]
-		if interaction.InteractionType == InteractionTypeConversation {
+		if interaction.InteractionType == InteractionTypeConversation ||
+		interaction.InteractionType == InteractionTypeMiniGame0 {
 			// Draw textbox
 			// Set textbox dimensions
 			var boxX float32 = 16
@@ -580,6 +600,7 @@ func main() {
 		},
 		TouchButtons: mobileButtons,
 		Interactions: gameInteractions,
+		MiniFlappyGame: miniFlappyGame,
 	}
 
 	if err := ebiten.RunGame(g); err != nil {
