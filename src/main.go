@@ -504,6 +504,25 @@ func (g *Game) DrawTouchButtons(screen *ebiten.Image) {
 			color.NRGBA{255, 255, 255, 128},
 			false,
 		)
+		if b.ButtonType == ButtonUp {
+			ebitenutil.DebugPrintAt(screen, "U", b.boundX + b.boundWidth / 2.0 - 3,
+				b.boundY + b.boundHeight / 2.0 - 8)
+		} else if b.ButtonType == ButtonDown {
+			ebitenutil.DebugPrintAt(screen, "D", b.boundX + b.boundWidth / 2.0 - 3,
+				b.boundY + b.boundHeight / 2.0 - 8)
+		} else if b.ButtonType == ButtonLeft {
+			ebitenutil.DebugPrintAt(screen, "L", b.boundX + b.boundWidth / 2.0 - 3,
+				b.boundY + b.boundHeight / 2.0 - 8)
+		} else if b.ButtonType == ButtonRight {
+			ebitenutil.DebugPrintAt(screen, "R", b.boundX + b.boundWidth / 2.0 - 3,
+				b.boundY + b.boundHeight / 2.0 - 8)
+		} else if b.ButtonType == ButtonA {
+			ebitenutil.DebugPrintAt(screen, "A", b.boundX + b.boundWidth / 2.0 - 3,
+				b.boundY + b.boundHeight / 2.0 - 8)
+		} else if b.ButtonType == ButtonD {
+			ebitenutil.DebugPrintAt(screen, "D", b.boundX + b.boundWidth / 2.0 - 3,
+				b.boundY + b.boundHeight / 2.0 - 8)
+		}
 	}
 }
 
