@@ -392,7 +392,7 @@ func init() {
 			InteractionText: []string {
 				"Mini Game?",
 				"...",
-				"Done.",
+				"Done!",
 			},
 			ContainMiniGame: true,
 			MiniGameState: 1,
@@ -402,14 +402,25 @@ func init() {
 	// Initialize mini flappy game
 	miniFlappyGame = FlappyGame {
 		BgImage: parkingLotBg,
+		PlayerSetImage: playerSetImage,
+		Player: Player {
+			GridX: 5, // Player start position in scene in grid unit
+			GridY: 5,
+			PixelX: CenterX, // Player start position in pixel
+			PixelY: GroundY - 2 * tileSize,
+			Action: FlappyActionIdle,
+			Dir: DirRight,
+		},
 		WidthPixels: float64(parkingLotBg.Bounds().Dx()),
 		HeightPixels: float64(parkingLotBg.Bounds().Dy()),
-		Obstacle: RenderItem {
-			ID: TreeID,
-			BaseY: 19 * tileSize, // base of tree
-			ScreenDstX: 3 * tileSize,
-			ScreenDstY: 18 * tileSize,
-			SpriteImg: exteriorImage,
+		Obstacles: []RenderItem {
+			{
+				ID: TreeID,
+				BaseY: 19 * tileSize, // base of tree
+				ScreenDstX: CenterX + 10 * tileSize,
+				ScreenDstY: GroundY - 2 * tileSize,
+				SpriteImg: exteriorImage,
+			},
 		},
 		CurrentState: StateTitle,
 		Score: 0,
@@ -430,5 +441,6 @@ func init() {
 			},
 		},
 		IsActive: false,
+		PlayerVelocityY: 0,
 	}
 }

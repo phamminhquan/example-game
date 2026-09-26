@@ -51,7 +51,7 @@ const (
 // Must divide cleanly uinto your tileSize, like 2.0 or 4.0 for 16/32px
 const (
 	moveSpeed = 4.0 // Frame sliding speed (pixel per tick)
-	animSpeed = 0.2 // Animation speed (frame per tick)
+	playerAnimSpeed = 0.2 // Animation speed (frame per tick)
 )
 
 // Player actions
@@ -113,7 +113,7 @@ type Player struct {
 type RenderItem struct {
 	ID int
 	BaseY int // Y coordinate of the base to the object, i.e. foot
-	ScreenDstX, ScreenDstY int // Coordinate of object on the drawn screen
+	ScreenDstX, ScreenDstY float64 // Coordinate of object on the drawn screen
 	SpriteImg *ebiten.Image
 }
 
@@ -330,7 +330,7 @@ func (g *Game) Update() error {
 
 		// Independent animation layer
 		// Accumulate fractional time completely separate from moveSpeed
-		g.Player.AnimProgress += animSpeed
+		g.Player.AnimProgress += playerAnimSpeed
 		if g.Player.AnimProgress >= 1.0 {
 			g.Player.AnimProgress = 0.0
 			g.Player.AnimFrame = (g.Player.AnimFrame + 1) % 6 // 6 frames per movement
@@ -526,8 +526,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	g.RenderQueue = append(g.RenderQueue, RenderItem {
 		ID: PlayerID,
 		BaseY: (g.Player.GridY + 1) * tileSize, // player's feet
-		ScreenDstX: g.Player.GridX * tileSize,
-		ScreenDstY: g.Player.GridY * tileSize,
+		ScreenDstX: float64(g.Player.GridX) * tileSize,
+		ScreenDstY: float64(g.Player.GridY) * tileSize,
 		SpriteImg: g.playerSetImage,
 	})
 	// Push all the entity in scene
