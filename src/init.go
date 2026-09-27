@@ -51,8 +51,8 @@ var wg sync.WaitGroup
 // Global variable storing interactions
 var gameInteractions []Interaction
 
-// Global variable storing mini flappy game
-var miniFlappyGame FlappyGame
+// Global variable storing mini dino game
+var miniDinoGame DinoGame
 
 // Function to load embedded image
 func loadEmbeddedImage(byteData []byte) *ebiten.Image {
@@ -399,8 +399,8 @@ func init() {
 		},
 	}
 
-	// Initialize mini flappy game
-	miniFlappyGame = FlappyGame {
+	// Initialize mini dino game
+	miniDinoGame = DinoGame {
 		BgImage: parkingLotBg,
 		PlayerSetImage: playerSetImage,
 		Player: Player {
@@ -408,7 +408,7 @@ func init() {
 			GridY: 5,
 			PixelX: CenterX, // Player start position in pixel
 			PixelY: GroundY - 2 * tileSize,
-			Action: FlappyActionIdle,
+			Action: DinoActionIdle,
 			Dir: DirRight,
 		},
 		WidthPixels: float64(parkingLotBg.Bounds().Dx()),

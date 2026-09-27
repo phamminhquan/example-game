@@ -168,7 +168,7 @@ type Game struct {
 	Interactions []Interaction
 	CurrentInteraction int
 	CurrentInteractionState int
-	MiniFlappyGame FlappyGame
+	MiniDinoGame DinoGame
 }
 
 // Game Method: IsWalkable returns tru if coordinate is within bounds and
@@ -279,13 +279,13 @@ func (g *Game) Update() error {
 		} else {
 			// Do contain mini-game
 			if g.CurrentInteractionState == g.Interactions[g.CurrentInteraction].MiniGameState {
-				g.MiniFlappyGame.IsActive = true
-				err := g.MiniFlappyGame.Update()
+				g.MiniDinoGame.IsActive = true
+				err := g.MiniDinoGame.Update()
 				if err != nil {
 					log.Fatal(err)
 				}
 				// Check if game is still active
-				if g.MiniFlappyGame.IsActive == false {
+				if g.MiniDinoGame.IsActive == false {
 					fmt.Printf("Proceed to next state\n")
 					g.CurrentInteractionState++
 				}
@@ -395,7 +395,7 @@ func (g *Game) Update() error {
 				g.Player.Action = ActionInteract
 				g.CurrentInteraction = trigger.InteractionID
 				g.CurrentInteractionState = 0 // start interaction in start state
-				//g.MiniFlappyGame.IsActive = true
+				//g.MiniDinoGame.IsActive = true
 			}
 		}
 	} else if moved {
@@ -531,8 +531,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	// Continue to draw mini-game if we are in a mini-game
 	if g.Player.Action == ActionInteract &&
 	g.Interactions[g.CurrentInteraction].InteractionType == InteractionTypeMiniGame0 {
-		if g.MiniFlappyGame.IsActive {
-			g.MiniFlappyGame.Draw(screen)
+		if g.MiniDinoGame.IsActive {
+			g.MiniDinoGame.Draw(screen)
 			return
 		}
 	}
@@ -619,7 +619,7 @@ func main() {
 		},
 		TouchButtons: mobileButtons,
 		Interactions: gameInteractions,
-		MiniFlappyGame: miniFlappyGame,
+		MiniDinoGame: miniDinoGame,
 	}
 
 	if err := ebiten.RunGame(g); err != nil {

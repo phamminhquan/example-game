@@ -39,13 +39,13 @@ const ObstacleSpeed = 2.2
 
 // Player action
 const (
-	FlappyActionIdle = iota // 0
-	FlappyActionRun // 1
-	FlappyActionJump // 2
+	DinoActionIdle = iota // 0
+	DinoActionRun // 1
+	DinoActionJump // 2
 )
 
 // Game structure
-type FlappyGame struct {
+type DinoGame struct {
 	BgImage *ebiten.Image
 	PlayerSetImage *ebiten.Image
 	Player Player
@@ -63,7 +63,7 @@ type FlappyGame struct {
 // Function to get a key press (first press)
 // First return argument is true if there is a touch, otherwise false
 // Second return argument is touch button type
-func (fg *FlappyGame) GetButtonJustPressed() (bool, int) {
+func (fg *DinoGame) GetButtonJustPressed() (bool, int) {
 	// Capture interaction key presses
 	if inpututil.IsKeyJustPressed(ebiten.KeyA) {
 		fmt.Printf("Button Pressed: A\n")
@@ -90,16 +90,16 @@ func (fg *FlappyGame) GetButtonJustPressed() (bool, int) {
 // Helper functions
 // Function: return start pixel (both dimension) of a tile insde of the player
 // tileset based on what action it is
-func (fg *FlappyGame) GetPlayerCoord(actionType, dir, frame int) (x, y int) {
+func (fg *DinoGame) GetPlayerCoord(actionType, dir, frame int) (x, y int) {
 	// From the way the player tile set is set up row 2 contains all the
 	// walking animation tyles. The first 6 tiles of row 2 is moving right.
 	// Next 6 is moving up, next 6 is moving left, and next 6 is moving down
 	// Row 1 of tileset is idle
 	var playerGridX, playerGridY int
 	playerGridX = (dir * 6) + frame
-	if actionType == FlappyActionIdle {
+	if actionType == DinoActionIdle {
 		playerGridY = 2
-	} else if actionType == FlappyActionRun || actionType == FlappyActionJump {
+	} else if actionType == DinoActionRun || actionType == DinoActionJump {
 		playerGridY = 4
 	} else {
 		log.Fatalf("[ERROR] Unknown player action.")
@@ -108,11 +108,11 @@ func (fg *FlappyGame) GetPlayerCoord(actionType, dir, frame int) (x, y int) {
 }
 
 // Function: mini-game update
-func (fg *FlappyGame) Update() error {
+func (fg *DinoGame) Update() error {
 	if fg.IsActive {
 		switch fg.CurrentState {
 		case StateTitle: // Title scene
-			fg.Player.Action = FlappyActionIdle
+			fg.Player.Action = DinoActionIdle
 			fg.Player.PixelX = CenterX
 			fg.Player.PixelY = GroundY - 2 * tileSize
 			fg.Obstacles = []RenderItem {
@@ -140,7 +140,7 @@ func (fg *FlappyGame) Update() error {
 			}
 		case StatePlay: // Play scene
 			// Player start running immediately after entering this scene
-			fg.Player.Action = FlappyActionRun
+			fg.Player.Action = DinoActionRun
 			// Collsion check
 			for _, obs := range fg.Obstacles {
 				if (fg.Player.PixelX + tileSize < obs.ScreenDstX ||
@@ -215,7 +215,7 @@ func (fg *FlappyGame) Update() error {
 			fg.Player.PixelY += fg.PlayerVelocityY
 
 		case StateOver: // Game over scene
-			fg.Player.Action = FlappyActionJump
+			fg.Player.Action = DinoActionJump
 			isPressed, buttonType := fg.GetButtonJustPressed()
 			if isPressed {
 				if buttonType == ButtonA { // Start Play again (go back to title scene)
@@ -238,7 +238,7 @@ func (fg *FlappyGame) Update() error {
 }
 
 // Mini-game Method:  Draw touch buttons for mobile
-func (fg *FlappyGame) DrawTouchButtons(screen *ebiten.Image) {
+func (fg *DinoGame) DrawTouchButtons(screen *ebiten.Image) {
 	// Draw each button
 	for _, b := range fg.TouchButtons {
 		vector.DrawFilledCircle(
@@ -260,7 +260,7 @@ func (fg *FlappyGame) DrawTouchButtons(screen *ebiten.Image) {
 }
 
 // Game Method: Draw Player (called in Draw method)
-func (fg *FlappyGame) DrawPlayer(screen *ebiten.Image) {
+func (fg *DinoGame) DrawPlayer(screen *ebiten.Image) {
 	// Camera position
 	fixedCamX := 100.0
 	fixedCamY := 100.0
@@ -281,7 +281,7 @@ func (fg *FlappyGame) DrawPlayer(screen *ebiten.Image) {
 }
 
 // Game Method: Draw Player (called in Draw method)
-func (fg *FlappyGame) DrawObstacle(screen *ebiten.Image) {
+func (fg *DinoGame) DrawObstacle(screen *ebiten.Image) {
 	// Camera position
 	fixedCamX := 100.0
 	fixedCamY := 100.0
@@ -304,7 +304,7 @@ func (fg *FlappyGame) DrawObstacle(screen *ebiten.Image) {
 }
 
 // Function: mini-game draw call
-func (fg *FlappyGame) Draw(screen *ebiten.Image) {
+func (fg *DinoGame) Draw(screen *ebiten.Image) {
 	// Blackout background for now
 	screen.Fill(color.NRGBA{0, 0, 0, 255})
 
@@ -312,12 +312,11 @@ func (fg *FlappyGame) Draw(screen *ebiten.Image) {
 	var stateStr string
 	switch fg.CurrentState {
 	case StateTitle:
-		stateStr = "MINI FLAPPY\nPress A to Play"
+		stateStr = "MINI DINO\nPress A to Play"
 	case StatePlay:
-		stateStr = "MINI FLAPPY\nPlaying..."
-
+		stateStr = "MINI DINO\nPlaying..."
 	case StateOver:
-		stateStr = "MINI FLAPPY\nGame Over"
+		stateStr = "MINI DINO\nGame Over"
 	}
 	
 	// Draw Obstacle
