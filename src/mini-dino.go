@@ -63,7 +63,7 @@ type DinoGame struct {
 // Function to get a key press (first press)
 // First return argument is true if there is a touch, otherwise false
 // Second return argument is touch button type
-func (fg *DinoGame) GetButtonJustPressed() (bool, int) {
+func (dg *DinoGame) GetButtonJustPressed() (bool, int) {
 	// Capture interaction key presses
 	if inpututil.IsKeyJustPressed(ebiten.KeyA) {
 		fmt.Printf("Button Pressed: A\n")
@@ -76,7 +76,7 @@ func (fg *DinoGame) GetButtonJustPressed() (bool, int) {
 		for _, id := range touchIDs {
 			tx, ty := ebiten.TouchPosition(id) // Grab touch position
 			// Loop through our TouchButtons
-			for _, b := range fg.TouchButtons {
+			for _, b := range dg.TouchButtons {
 				if tx >= b.boundX && tx <= b.boundX + b.boundWidth &&
 				ty >= b.boundY && ty <= b.boundY + b.boundHeight {
 					return true, b.ButtonType
@@ -90,7 +90,7 @@ func (fg *DinoGame) GetButtonJustPressed() (bool, int) {
 // Helper functions
 // Function: return start pixel (both dimension) of a tile insde of the player
 // tileset based on what action it is
-func (fg *DinoGame) GetPlayerCoord(actionType, dir, frame int) (x, y int) {
+func (dg *DinoGame) GetPlayerCoord(actionType, dir, frame int) (x, y int) {
 	// From the way the player tile set is set up row 2 contains all the
 	// walking animation tyles. The first 6 tiles of row 2 is moving right.
 	// Next 6 is moving up, next 6 is moving left, and next 6 is moving down
@@ -108,14 +108,14 @@ func (fg *DinoGame) GetPlayerCoord(actionType, dir, frame int) (x, y int) {
 }
 
 // Function: mini-game update
-func (fg *DinoGame) Update() error {
-	if fg.IsActive {
-		switch fg.CurrentState {
+func (dg *DinoGame) Update() error {
+	if dg.IsActive {
+		switch dg.CurrentState {
 		case StateTitle: // Title scene
-			fg.Player.Action = DinoActionIdle
-			fg.Player.PixelX = CenterX
-			fg.Player.PixelY = GroundY - 2 * tileSize
-			fg.Obstacles = []RenderItem {
+			dg.Player.Action = DinoActionIdle
+			dg.Player.PixelX = CenterX
+			dg.Player.PixelY = GroundY - 2 * tileSize
+			dg.Obstacles = []RenderItem {
 				{
 					ID: TreeID,
 					BaseY: 19 * tileSize, // base of tree
@@ -124,113 +124,113 @@ func (fg *DinoGame) Update() error {
 					SpriteImg: exteriorImage,
 				},
 			}
-			fg.Score = 0
-			fg.NumObstaclesDeleted = 0
-			isPressed, buttonType := fg.GetButtonJustPressed()
+			dg.Score = 0
+			dg.NumObstaclesDeleted = 0
+			isPressed, buttonType := dg.GetButtonJustPressed()
 			if isPressed {
 				if buttonType == ButtonA { // Start Play
-					fg.CurrentState = StatePlay
-					fg.IsActive = true
+					dg.CurrentState = StatePlay
+					dg.IsActive = true
 					fmt.Printf("Start Play\n")
 				} else if buttonType == ButtonD { // Exit
-					fg.CurrentState = StateExit
-					fg.IsActive = true
+					dg.CurrentState = StateExit
+					dg.IsActive = true
 					fmt.Printf("Exit\n")
 				}
 			}
 		case StatePlay: // Play scene
 			// Player start running immediately after entering this scene
-			fg.Player.Action = DinoActionRun
+			dg.Player.Action = DinoActionRun
 			// Collsion check
-			for _, obs := range fg.Obstacles {
-				if (fg.Player.PixelX + tileSize < obs.ScreenDstX ||
-				obs.ScreenDstX + tileSize < fg.Player.PixelX ||
-				fg.Player.PixelY + 2 * tileSize < obs.ScreenDstY || 
-				obs.ScreenDstY + 2 * tileSize < fg.Player.PixelY) == false {
+			for _, obs := range dg.Obstacles {
+				if (dg.Player.PixelX + tileSize < obs.ScreenDstX ||
+				obs.ScreenDstX + tileSize < dg.Player.PixelX ||
+				dg.Player.PixelY + 2 * tileSize < obs.ScreenDstY || 
+				obs.ScreenDstY + 2 * tileSize < dg.Player.PixelY) == false {
 					fmt.Printf("Collision\n")
-					fg.CurrentState = StateOver
+					dg.CurrentState = StateOver
 				}
 			}
 			// Independent animation layer
 			// Accumulate fractional time completely separate from moveSpeed
-			fg.Player.AnimProgress += playerAnimSpeed
-			if fg.Player.AnimProgress >= 1.0 {
-				fg.Player.AnimProgress = 0.0
-				fg.Player.AnimFrame = (fg.Player.AnimFrame + 1) % 6 // 6 frames per movement
+			dg.Player.AnimProgress += playerAnimSpeed
+			if dg.Player.AnimProgress >= 1.0 {
+				dg.Player.AnimProgress = 0.0
+				dg.Player.AnimFrame = (dg.Player.AnimFrame + 1) % 6 // 6 frames per movement
 			}
 			// Move the obstacles
 			var numPassedObstacles int = 0;
-			for i, _ := range fg.Obstacles {
-				fg.Obstacles[i].ScreenDstX -= ObstacleSpeed
+			for i, _ := range dg.Obstacles {
+				dg.Obstacles[i].ScreenDstX -= ObstacleSpeed
 				// Increment score for each passed obstacle
-				if float64(fg.Obstacles[i].ScreenDstX) < fg.Player.PixelX - tileSize {
+				if float64(dg.Obstacles[i].ScreenDstX) < dg.Player.PixelX - tileSize {
 					numPassedObstacles++
 				}
 			}
 			// If obstacle reach left handside then remove
-			if len(fg.Obstacles) != 0 {
-				if fg.Obstacles[0].ScreenDstX < 100 - tileSize - screenWidth / 2 {
-					fg.Obstacles = slices.Delete(fg.Obstacles, 0, 1)
-					fg.NumObstaclesDeleted++
+			if len(dg.Obstacles) != 0 {
+				if dg.Obstacles[0].ScreenDstX < 100 - tileSize - screenWidth / 2 {
+					dg.Obstacles = slices.Delete(dg.Obstacles, 0, 1)
+					dg.NumObstaclesDeleted++
 				}
 			}
 			// Add another obstacle if the last one has reached a certain point
-			if fg.Obstacles[len(fg.Obstacles)-1].ScreenDstX < 100 + 5 * tileSize {
-				fg.Obstacles = append(fg.Obstacles, RenderItem {
+			if dg.Obstacles[len(dg.Obstacles)-1].ScreenDstX < 100 + 5 * tileSize {
+				dg.Obstacles = append(dg.Obstacles, RenderItem {
 					ID: TreeID,
 					ScreenDstX: CenterX + 13 * tileSize,
 					ScreenDstY: GroundY - 2 * tileSize,
 					SpriteImg: exteriorImage,
 				})
 			}
-			fg.Score = fg.NumObstaclesDeleted + numPassedObstacles
+			dg.Score = dg.NumObstaclesDeleted + numPassedObstacles
 			// Register key presses
-			isPressed, buttonType := fg.GetButtonJustPressed()
+			isPressed, buttonType := dg.GetButtonJustPressed()
 			if isPressed { // Make character jump?
 				if buttonType == ButtonA {
-					fg.CurrentState = StatePlay
-					fg.IsActive = true
+					dg.CurrentState = StatePlay
+					dg.IsActive = true
 					fmt.Printf("Keep Play\n")
-					fmt.Printf("Distance from ground: %f\n", math.Abs(fg.Player.PixelY + 2 * tileSize - GroundY))
+					fmt.Printf("Distance from ground: %f\n", math.Abs(dg.Player.PixelY + 2 * tileSize - GroundY))
 					// Make character jump by descreasing velocity in Y direction
-					fg.PlayerVelocityY = -12.0
-					fmt.Printf("Number of obstacles in queue: %d\n", len(fg.Obstacles))
+					dg.PlayerVelocityY = -12.0
+					fmt.Printf("Number of obstacles in queue: %d\n", len(dg.Obstacles))
 				} else if buttonType == ButtonD { // Exit
-					fg.CurrentState = StateExit
-					fg.IsActive = true
+					dg.CurrentState = StateExit
+					dg.IsActive = true
 					fmt.Printf("Exit\n")
 				}
 			}
 			// Can't fall through the ground
-			if fg.Player.PixelY + 2 * tileSize == GroundY {
-				if fg.PlayerVelocityY > 0 {
-					fg.PlayerVelocityY = 0
+			if dg.Player.PixelY + 2 * tileSize == GroundY {
+				if dg.PlayerVelocityY > 0 {
+					dg.PlayerVelocityY = 0
 				}
-			} else if fg.Player.PixelY + 2 * tileSize < GroundY {
+			} else if dg.Player.PixelY + 2 * tileSize < GroundY {
 				// Gravity effect
-				fg.PlayerVelocityY += Gravity
-			} else if fg.Player.PixelY + 2 * tileSize > GroundY {
-				fg.PlayerVelocityY = -1
+				dg.PlayerVelocityY += Gravity
+			} else if dg.Player.PixelY + 2 * tileSize > GroundY {
+				dg.PlayerVelocityY = -1
 			}
-			fg.Player.PixelY += fg.PlayerVelocityY
+			dg.Player.PixelY += dg.PlayerVelocityY
 
 		case StateOver: // Game over scene
-			fg.Player.Action = DinoActionJump
-			isPressed, buttonType := fg.GetButtonJustPressed()
+			dg.Player.Action = DinoActionJump
+			isPressed, buttonType := dg.GetButtonJustPressed()
 			if isPressed {
 				if buttonType == ButtonA { // Start Play again (go back to title scene)
-					fg.CurrentState = StateTitle
-					fg.IsActive = true
+					dg.CurrentState = StateTitle
+					dg.IsActive = true
 					fmt.Printf("Play again\n")
 				} else if buttonType == ButtonD { // Exit
-					fg.CurrentState = StateExit
-					fg.IsActive = true
+					dg.CurrentState = StateExit
+					dg.IsActive = true
 					fmt.Printf("Exit\n")
 				}
 			}
 		case StateExit: // Exit game
-			fg.CurrentState = StateTitle // return to title scene after exit
-			fg.IsActive = false
+			dg.CurrentState = StateTitle // return to title scene after exit
+			dg.IsActive = false
 			fmt.Printf("StateExit\n")
 		}
 	}
@@ -238,9 +238,9 @@ func (fg *DinoGame) Update() error {
 }
 
 // Mini-game Method:  Draw touch buttons for mobile
-func (fg *DinoGame) DrawTouchButtons(screen *ebiten.Image) {
+func (dg *DinoGame) DrawTouchButtons(screen *ebiten.Image) {
 	// Draw each button
-	for _, b := range fg.TouchButtons {
+	for _, b := range dg.TouchButtons {
 		vector.DrawFilledCircle(
 			screen,
 			float32(b.boundX + b.boundWidth / 2.0),
@@ -260,34 +260,34 @@ func (fg *DinoGame) DrawTouchButtons(screen *ebiten.Image) {
 }
 
 // Game Method: Draw Player (called in Draw method)
-func (fg *DinoGame) DrawPlayer(screen *ebiten.Image) {
+func (dg *DinoGame) DrawPlayer(screen *ebiten.Image) {
 	// Camera position
 	fixedCamX := 100.0
 	fixedCamY := 100.0
 	var camMatrix ebiten.GeoM
 	camMatrix.Translate(-fixedCamX + screenWidth / 2, -fixedCamY + screenHeight / 2)
 	// Get player start coordinate inside of the player tileset
-	pSrcX, pSrcY := fg.GetPlayerCoord(fg.Player.Action, fg.Player.Dir, fg.Player.AnimFrame)
+	pSrcX, pSrcY := dg.GetPlayerCoord(dg.Player.Action, dg.Player.Dir, dg.Player.AnimFrame)
 	// Get the player rectangle image coordinate
 	pRect := image.Rect(pSrcX, pSrcY, pSrcX + tileSize, pSrcY + 2 * tileSize)
 	// Extract the subimage from the player tileset
-	playerSprite := fg.PlayerSetImage.SubImage(pRect).(*ebiten.Image)
+	playerSprite := dg.PlayerSetImage.SubImage(pRect).(*ebiten.Image)
 	// Set up the draw options (start point of the draw call)
 	popts := &ebiten.DrawImageOptions{}
-	popts.GeoM.Translate(fg.Player.PixelX, fg.Player.PixelY)
+	popts.GeoM.Translate(dg.Player.PixelX, dg.Player.PixelY)
 	popts.GeoM.Concat(camMatrix)
 	// Draw call
 	screen.DrawImage(playerSprite, popts)
 }
 
 // Game Method: Draw Player (called in Draw method)
-func (fg *DinoGame) DrawObstacle(screen *ebiten.Image) {
+func (dg *DinoGame) DrawObstacle(screen *ebiten.Image) {
 	// Camera position
 	fixedCamX := 100.0
 	fixedCamY := 100.0
 	var camMatrix ebiten.GeoM
 	camMatrix.Translate(-fixedCamX + screenWidth / 2, -fixedCamY + screenHeight / 2)
-	for _, obstacle := range fg.Obstacles {
+	for _, obstacle := range dg.Obstacles {
 		// Get player start coordinate inside of the player tileset
 		pSrcX, pSrcY, pDstX, pDstY := GetExteriorItemCoord(obstacle.ID)
 		// Get the player rectangle image coordinate
@@ -303,14 +303,21 @@ func (fg *DinoGame) DrawObstacle(screen *ebiten.Image) {
 	}
 }
 
+// Game Method: Draw background (called in Draw method)
+func (dg *DinoGame) DrawBackground(screen *ebiten.Image) {
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(0.0, 0.0)
+	screen.DrawImage(dg.BgImage, op)
+}
+
 // Function: mini-game draw call
-func (fg *DinoGame) Draw(screen *ebiten.Image) {
-	// Blackout background for now
-	screen.Fill(color.NRGBA{0, 0, 0, 255})
+func (dg *DinoGame) Draw(screen *ebiten.Image) {
+	// Draw background
+	dg.DrawBackground(screen)
 
 	// Draw text on screen for now
 	var stateStr string
-	switch fg.CurrentState {
+	switch dg.CurrentState {
 	case StateTitle:
 		stateStr = "MINI DINO\nPress A to Play"
 	case StatePlay:
@@ -320,13 +327,13 @@ func (fg *DinoGame) Draw(screen *ebiten.Image) {
 	}
 	
 	// Draw Obstacle
-	fg.DrawObstacle(screen)
+	dg.DrawObstacle(screen)
 	// Draw Player
-	fg.DrawPlayer(screen)
+	dg.DrawPlayer(screen)
 	// Draw virtual buttons
-	fg.DrawTouchButtons(screen)
+	dg.DrawTouchButtons(screen)
 	// Display Score
-	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Score: %d", fg.Score), 320, 30)
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Score: %d", dg.Score), 320, 30)
 	// Display Tick per second
 	ebitenutil.DebugPrintAt(screen, stateStr, 30, 30)
 }

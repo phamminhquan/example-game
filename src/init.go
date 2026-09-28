@@ -30,6 +30,8 @@ var parkingLotCsvStr string
 var courtYardByteData []byte
 //go:embed assets/court-yard-collision.csv
 var courtYardCsvStr string
+//go:embed assets/mini-dino.png
+var miniDinoByteData []byte
 // Global variable storing all the scenes
 var gameScenes = make(map[int]*Scene)
 
@@ -38,6 +40,7 @@ var exteriorImage *ebiten.Image
 var parkingLotBg *ebiten.Image
 var courtYardBg *ebiten.Image
 var playerSetImage *ebiten.Image
+var miniDinoBg *ebiten.Image
 
 // Global variable storing the virtual touch buttons info
 var mobileButtons []TouchButton
@@ -115,6 +118,11 @@ func init() {
 	go func() {
 		defer wg.Done()
 		playerSetImage = loadEmbeddedImage(playerByteData)
+	}()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		miniDinoBg = loadEmbeddedImage(miniDinoByteData)
 	}()
 	wg.Add(1)
 	go func() {
@@ -401,7 +409,7 @@ func init() {
 
 	// Initialize mini dino game
 	miniDinoGame = DinoGame {
-		BgImage: parkingLotBg,
+		BgImage: miniDinoBg,
 		PlayerSetImage: playerSetImage,
 		Player: Player {
 			GridX: 5, // Player start position in scene in grid unit
