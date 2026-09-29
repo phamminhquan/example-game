@@ -122,6 +122,10 @@ func (dg *DinoGame) Update() error {
 					ScreenDstX: CenterX + 13 * tileSize,
 					ScreenDstY: GroundY - 2 * tileSize,
 					SpriteImg: exteriorImage,
+					SpriteGridSrcX: 33,
+					SpriteGridSrcY: 10,
+					SpriteGridDstX: 34,
+					SpriteGridDstY: 12,
 				},
 			}
 			dg.Score = 0
@@ -181,6 +185,10 @@ func (dg *DinoGame) Update() error {
 					ScreenDstX: CenterX + 13 * tileSize,
 					ScreenDstY: GroundY - 2 * tileSize,
 					SpriteImg: exteriorImage,
+					SpriteGridSrcX: 33,
+					SpriteGridSrcY: 10,
+					SpriteGridDstX: 34,
+					SpriteGridDstY: 12,
 				})
 			}
 			dg.Score = dg.NumObstaclesDeleted + numPassedObstacles
@@ -289,7 +297,11 @@ func (dg *DinoGame) DrawObstacle(screen *ebiten.Image) {
 	camMatrix.Translate(-fixedCamX + screenWidth / 2, -fixedCamY + screenHeight / 2)
 	for _, obstacle := range dg.Obstacles {
 		// Get player start coordinate inside of the player tileset
-		pSrcX, pSrcY, pDstX, pDstY := GetExteriorItemCoord(obstacle.ID)
+		//pSrcX, pSrcY, pDstX, pDstY := GetExteriorItemCoord(obstacle.ID)
+		pSrcX := obstacle.SpriteGridSrcX * tileSize
+		pSrcY := obstacle.SpriteGridSrcY * tileSize
+		pDstX := obstacle.SpriteGridDstX * tileSize
+		pDstY := obstacle.SpriteGridDstY * tileSize
 		// Get the player rectangle image coordinate
 		pRect := image.Rect(pSrcX, pSrcY, pDstX, pDstY)
 		// Extract the subimage from the player tileset

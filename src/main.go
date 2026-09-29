@@ -34,6 +34,7 @@ const (
 const (
 	SceneParkingLot = iota // 0
 	SceneCourtYard // 1
+	SceneReception // 2
 )
 
 // Player facing direction
@@ -77,6 +78,11 @@ const (
 const (
 	PlayerID = iota // 0
 	TreeID // 1
+	GlassDoorID // 2
+	ChairID // 3
+	DeskID // 4
+	PlantPotID // 5
+	MonitorID // 6
 )
 
 // Type of button
@@ -115,6 +121,8 @@ type RenderItem struct {
 	BaseY int // Y coordinate of the base to the object, i.e. foot
 	ScreenDstX, ScreenDstY float64 // Coordinate of object on the drawn screen
 	SpriteImg *ebiten.Image
+	SpriteGridSrcX, SpriteGridSrcY int // coordinate of item in sprite sheet in grid unit
+	SpriteGridDstX, SpriteGridDstY int
 }
 
 // WarpTrigger defines a specific tile on the current scene where there is a
@@ -476,7 +484,10 @@ func (g *Game) DrawYSortedLayer(screen *ebiten.Image) {
 			camX := float64((screenWidth / 2) - playerPixelX - (tileSize / 2))
 			camY := float64((screenHeight / 2) - playerPixelY - (tileSize / 2))
 			// Get player start coordinate inside of the player tileset
-			pSrcX, pSrcY, pDstX, pDstY := GetExteriorItemCoord(item.ID)
+			pSrcX := item.SpriteGridSrcX * tileSize
+			pSrcY := item.SpriteGridSrcY * tileSize
+			pDstX := item.SpriteGridDstX * tileSize
+			pDstY := item.SpriteGridDstY * tileSize
 			// Get the player rectangle image coordinate
 			pRect := image.Rect(pSrcX, pSrcY, pDstX, pDstY)
 			// Extract the subimage from the player tileset

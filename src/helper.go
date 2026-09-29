@@ -23,22 +23,3 @@ func GetPlayerCoord(actionType, dir, frame int) (x, y int) {
 	}
 	return playerGridX * tileSize, playerGridY * tileSize
 }
-
-// Function: return the coordinate of the exterior renderable item in the
-// spritesheet in pixels based on item ID
-func GetExteriorItemCoord(itemID int) (int, int, int, int) {
-	var GridSrcX, GridSrcY, GridDstX, GridDstY int
-	switch itemID {
-	case TreeID:
-		GridSrcX = 33
-		GridSrcY = 10
-		GridDstX = GridSrcX + 1
-		GridDstY = GridSrcY + 2
-	default:
-		GridSrcX = 0
-		GridDstX = 1
-		GridSrcY = 0
-		GridDstY = 1
-	}
-	return GridSrcX * tileSize, GridSrcY * tileSize, GridDstX * tileSize, GridDstY * tileSize
-}

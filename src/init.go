@@ -20,6 +20,8 @@ import (
 // Declare the embedded compile-time asset bytes
 //go:embed assets/exterior-sprites.png
 var exteriorByteData []byte
+//go:embed assets/interior-sprites.png
+var interiorByteData []byte
 //go:embed assets/player-sprites.png
 var playerByteData []byte
 //go:embed assets/parking-lot.png
@@ -32,15 +34,21 @@ var courtYardByteData []byte
 var courtYardCsvStr string
 //go:embed assets/mini-dino.png
 var miniDinoByteData []byte
+//go:embed assets/reception.png
+var receptionByteData []byte
+//go:embed assets/reception-collision.csv
+var receptionCsvStr string
 // Global variable storing all the scenes
 var gameScenes = make(map[int]*Scene)
 
 // Global variable storing the images of the scenes
 var exteriorImage *ebiten.Image
+var interiorImage *ebiten.Image
 var parkingLotBg *ebiten.Image
 var courtYardBg *ebiten.Image
 var playerSetImage *ebiten.Image
 var miniDinoBg *ebiten.Image
+var receptionBg *ebiten.Image
 
 // Global variable storing the virtual touch buttons info
 var mobileButtons []TouchButton
@@ -49,6 +57,7 @@ var mobileButtons []TouchButton
 var Time time.Time
 var parkingLotCollision [][]int
 var courtYardCollision [][]int
+var receptionCollision [][]int
 var wg sync.WaitGroup
 
 // Global variable storing interactions
@@ -107,6 +116,11 @@ func init() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
+		interiorImage = loadEmbeddedImage(interiorByteData)
+	}()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
 		parkingLotBg = loadEmbeddedImage(parkingLotByteData)
 	}()
 	wg.Add(1)
@@ -127,12 +141,22 @@ func init() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
+		receptionBg = loadEmbeddedImage(receptionByteData)
+	}()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
 		parkingLotCollision = loadCollisionCsv(parkingLotCsvStr)
 	}()
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		courtYardCollision = loadCollisionCsv(courtYardCsvStr)
+	}()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		receptionCollision = loadCollisionCsv(receptionCsvStr)
 	}()
 	wg.Wait()
 	fmt.Printf("Time elasped: %s\n", time.Since(Time))
@@ -152,6 +176,10 @@ func init() {
 				ScreenDstX: 2 * tileSize,
 				ScreenDstY: 23 * tileSize,
 				SpriteImg: exteriorImage,
+				SpriteGridSrcX: 33,
+				SpriteGridSrcY: 10,
+				SpriteGridDstX: 34,
+				SpriteGridDstY: 12,
 			},
 			{
 				ID: TreeID,
@@ -159,6 +187,10 @@ func init() {
 				ScreenDstX: 10 * tileSize,
 				ScreenDstY: 23 * tileSize,
 				SpriteImg: exteriorImage,
+				SpriteGridSrcX: 33,
+				SpriteGridSrcY: 10,
+				SpriteGridDstX: 34,
+				SpriteGridDstY: 12,
 			},
 			{
 				ID: TreeID,
@@ -166,6 +198,10 @@ func init() {
 				ScreenDstX: 17 * tileSize,
 				ScreenDstY: 21 * tileSize,
 				SpriteImg: exteriorImage,
+				SpriteGridSrcX: 33,
+				SpriteGridSrcY: 10,
+				SpriteGridDstX: 34,
+				SpriteGridDstY: 12,
 			},
 			{
 				ID: TreeID,
@@ -173,6 +209,10 @@ func init() {
 				ScreenDstX: 6 * tileSize,
 				ScreenDstY: 13 * tileSize,
 				SpriteImg: exteriorImage,
+				SpriteGridSrcX: 33,
+				SpriteGridSrcY: 10,
+				SpriteGridDstX: 34,
+				SpriteGridDstY: 12,
 			},
 			{
 				ID: TreeID,
@@ -180,6 +220,10 @@ func init() {
 				ScreenDstX: 14 * tileSize,
 				ScreenDstY: 13 * tileSize,
 				SpriteImg: exteriorImage,
+				SpriteGridSrcX: 33,
+				SpriteGridSrcY: 10,
+				SpriteGridDstX: 34,
+				SpriteGridDstY: 12,
 			},
 			{
 				ID: TreeID,
@@ -187,6 +231,10 @@ func init() {
 				ScreenDstX: 17 * tileSize,
 				ScreenDstY: 11 * tileSize,
 				SpriteImg: exteriorImage,
+				SpriteGridSrcX: 33,
+				SpriteGridSrcY: 10,
+				SpriteGridDstX: 34,
+				SpriteGridDstY: 12,
 			},
 		},
 		WarpTriggers: []WarpTrigger {
@@ -259,6 +307,10 @@ func init() {
 				ScreenDstX: 3 * tileSize,
 				ScreenDstY: 18 * tileSize,
 				SpriteImg: exteriorImage,
+				SpriteGridSrcX: 33,
+				SpriteGridSrcY: 10,
+				SpriteGridDstX: 34,
+				SpriteGridDstY: 12,
 			},
 			{
 				ID: TreeID,
@@ -266,6 +318,10 @@ func init() {
 				ScreenDstX: 3 * tileSize,
 				ScreenDstY: 14 * tileSize,
 				SpriteImg: exteriorImage,
+				SpriteGridSrcX: 33,
+				SpriteGridSrcY: 10,
+				SpriteGridDstX: 34,
+				SpriteGridDstY: 12,
 			},
 			{
 				ID: TreeID,
@@ -273,6 +329,10 @@ func init() {
 				ScreenDstX: 4 * tileSize,
 				ScreenDstY: 6 * tileSize,
 				SpriteImg: exteriorImage,
+				SpriteGridSrcX: 33,
+				SpriteGridSrcY: 10,
+				SpriteGridDstX: 34,
+				SpriteGridDstY: 12,
 			},
 			{
 				ID: TreeID,
@@ -280,6 +340,10 @@ func init() {
 				ScreenDstX: 6 * tileSize,
 				ScreenDstY: 5 * tileSize,
 				SpriteImg: exteriorImage,
+				SpriteGridSrcX: 33,
+				SpriteGridSrcY: 10,
+				SpriteGridDstX: 34,
+				SpriteGridDstY: 12,
 			},
 			{
 				ID: TreeID,
@@ -287,6 +351,10 @@ func init() {
 				ScreenDstX: 8 * tileSize,
 				ScreenDstY: 6 * tileSize,
 				SpriteImg: exteriorImage,
+				SpriteGridSrcX: 33,
+				SpriteGridSrcY: 10,
+				SpriteGridDstX: 34,
+				SpriteGridDstY: 12,
 			},
 			{
 				ID: TreeID,
@@ -294,6 +362,10 @@ func init() {
 				ScreenDstX: 10 * tileSize,
 				ScreenDstY: 5 * tileSize,
 				SpriteImg: exteriorImage,
+				SpriteGridSrcX: 33,
+				SpriteGridSrcY: 10,
+				SpriteGridDstX: 34,
+				SpriteGridDstY: 12,
 			},
 		},
 		WarpTriggers: []WarpTrigger {
@@ -310,6 +382,179 @@ func init() {
 				SpawnX: 2,
 				SpawnY: 2,
 				TargetScene: SceneParkingLot,
+			},
+			{
+				DespawnX: 1,
+				DespawnY: 10,
+				SpawnX: 12,
+				SpawnY: 20,
+				TargetScene: SceneReception,
+			},
+			{
+				DespawnX: 1,
+				DespawnY: 11,
+				SpawnX: 12,
+				SpawnY: 21,
+				TargetScene: SceneReception,
+			},
+		},
+	}
+	
+	// Scene: Reception
+	gameScenes[SceneReception] = &Scene {
+		ID: SceneReception,
+		BgImage: receptionBg,
+		Collision: receptionCollision,
+		WidthPixels: float64(receptionBg.Bounds().Dx()),
+		HeightPixels: float64(receptionBg.Bounds().Dy()),
+		RenderItems: []RenderItem {
+			{
+				ID: GlassDoorID,
+				BaseY: 13 * tileSize,
+				ScreenDstX: 8 * tileSize,
+				ScreenDstY: 12 * tileSize,
+				SpriteImg: interiorImage,
+				SpriteGridSrcX: 3,
+				SpriteGridSrcY: 28,
+				SpriteGridDstX: 4,
+				SpriteGridDstY: 30,
+			},
+			{
+				ID: GlassDoorID,
+				BaseY: 13 * tileSize,
+				ScreenDstX: 11 * tileSize,
+				ScreenDstY: 12 * tileSize,
+				SpriteImg: interiorImage,
+				SpriteGridSrcX: 3,
+				SpriteGridSrcY: 28,
+				SpriteGridDstX: 4,
+				SpriteGridDstY: 30,
+			},
+			{
+				ID: ChairID,
+				BaseY: 9 * tileSize,
+				ScreenDstX: 4 * tileSize,
+				ScreenDstY: 9 * tileSize,
+				SpriteImg: interiorImage,
+				SpriteGridSrcX: 3,
+				SpriteGridSrcY: 74,
+				SpriteGridDstX: 4,
+				SpriteGridDstY: 75,
+			},
+			{
+				ID: ChairID,
+				BaseY: 9 * tileSize,
+				ScreenDstX: 14 * tileSize,
+				ScreenDstY: 9 * tileSize,
+				SpriteImg: interiorImage,
+				SpriteGridSrcX: 3,
+				SpriteGridSrcY: 74,
+				SpriteGridDstX: 4,
+				SpriteGridDstY: 75,
+			},
+			{
+				ID: ChairID,
+				BaseY: 9 * tileSize,
+				ScreenDstX: 5 * tileSize,
+				ScreenDstY: 7 * tileSize,
+				SpriteImg: interiorImage,
+				SpriteGridSrcX: 7,
+				SpriteGridSrcY: 76,
+				SpriteGridDstX: 9,
+				SpriteGridDstY: 79,
+			},
+			{
+				ID: ChairID,
+				BaseY: 10 * tileSize,
+				ScreenDstX: 12 * tileSize,
+				ScreenDstY: 8 * tileSize,
+				SpriteImg: interiorImage,
+				SpriteGridSrcX: 9,
+				SpriteGridSrcY: 76,
+				SpriteGridDstX: 11,
+				SpriteGridDstY: 79,
+			},
+			{
+				ID: ChairID,
+				BaseY: 7 * tileSize,
+				ScreenDstX: 4 * tileSize,
+				ScreenDstY: 6 * tileSize,
+				SpriteImg: interiorImage,
+				SpriteGridSrcX: 1,
+				SpriteGridSrcY: 72,
+				SpriteGridDstX: 4,
+				SpriteGridDstY: 74,
+			},
+			{
+				ID: ChairID,
+				BaseY: 8 * tileSize,
+				ScreenDstX: 12 * tileSize,
+				ScreenDstY: 7 * tileSize,
+				SpriteImg: interiorImage,
+				SpriteGridSrcX: 1,
+				SpriteGridSrcY: 72,
+				SpriteGridDstX: 4,
+				SpriteGridDstY: 74,
+			},
+			{
+				ID: PlantPotID,
+				BaseY: 4 * tileSize,
+				ScreenDstX: 4 * tileSize,
+				ScreenDstY: 3 * tileSize,
+				SpriteImg: interiorImage,
+				SpriteGridSrcX: 12,
+				SpriteGridSrcY: 45,
+				SpriteGridDstX: 13,
+				SpriteGridDstY: 47,
+			},
+			{
+				ID: DeskID,
+				BaseY: 4 * tileSize,
+				ScreenDstX: 5 * tileSize,
+				ScreenDstY: 4 * tileSize,
+				SpriteImg: interiorImage,
+				SpriteGridSrcX: 0,
+				SpriteGridSrcY: 8,
+				SpriteGridDstX: 2,
+				SpriteGridDstY: 9,
+			},
+			{
+				ID: DeskID,
+				BaseY: 4 * tileSize,
+				ScreenDstX: 8 * tileSize,
+				ScreenDstY: 4 * tileSize,
+				SpriteImg: interiorImage,
+				SpriteGridSrcX: 1,
+				SpriteGridSrcY: 8,
+				SpriteGridDstX: 3,
+				SpriteGridDstY: 9,
+			},
+			{
+				ID: MonitorID,
+				BaseY: 4 * tileSize,
+				ScreenDstX: 7 * tileSize,
+				ScreenDstY: 3 * tileSize,
+				SpriteImg: interiorImage,
+				SpriteGridSrcX: 3,
+				SpriteGridSrcY: 8,
+				SpriteGridDstX: 4,
+				SpriteGridDstY: 10,
+			},
+		},
+		WarpTriggers: []WarpTrigger {
+			{
+				DespawnX: 13,
+				DespawnY: 20,
+				SpawnX: 2,
+				SpawnY: 10,
+				TargetScene: SceneCourtYard,
+			},
+			{
+				DespawnX: 13,
+				DespawnY: 21,
+				SpawnX: 2,
+				SpawnY: 11,
+				TargetScene: SceneCourtYard,
 			},
 		},
 	}
@@ -428,6 +673,10 @@ func init() {
 				ScreenDstX: CenterX + 10 * tileSize,
 				ScreenDstY: GroundY - 2 * tileSize,
 				SpriteImg: exteriorImage,
+				SpriteGridSrcX: 33,
+				SpriteGridSrcY: 10,
+				SpriteGridDstX: 34,
+				SpriteGridDstY: 12,
 			},
 		},
 		CurrentState: StateTitle,
