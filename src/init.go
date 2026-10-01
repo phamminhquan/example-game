@@ -292,36 +292,6 @@ func init() {
 				PlayerDir: DirUp,
 				InteractionID: 0,
 			},
-			{
-				GridX: 14,
-				GridY: 21,
-				PlayerDir: DirRight,
-				InteractionID: 1,
-			},
-			{
-				GridX: 14,
-				GridY: 22,
-				PlayerDir: DirRight,
-				InteractionID: 1,
-			},
-			{
-				GridX: 15,
-				GridY: 20,
-				PlayerDir: DirDown,
-				InteractionID: 1,
-			},
-			{
-				GridX: 16,
-				GridY: 20,
-				PlayerDir: DirDown,
-				InteractionID: 1,
-			},
-			{
-				GridX: 13,
-				GridY: 7,
-				PlayerDir: DirUp,
-				InteractionID: 2,
-			},
 		},
 	}
 	
@@ -848,6 +818,20 @@ func init() {
 				SpawnX: 2,
 				SpawnY: 21,
 				TargetScene: SceneReception,
+			},
+		},
+		InteractionTriggers: []InteractionTrigger {
+			{
+				GridX: 22,
+				GridY: 3,
+				PlayerDir: DirUp,
+				InteractionID: 2,
+			},
+			{
+				GridX: 4,
+				GridY: 3,
+				PlayerDir: DirUp,
+				InteractionID: 1,
 			},
 		},
 	}

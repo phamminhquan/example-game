@@ -405,7 +405,6 @@ func (g *Game) Update() error {
 				g.Player.Action = ActionInteract
 				g.CurrentInteraction = trigger.InteractionID
 				g.CurrentInteractionState = 0 // start interaction in start state
-				//g.MiniDinoGame.IsActive = true
 			}
 		}
 	} else if moved {
