@@ -35,6 +35,7 @@ const (
 	SceneParkingLot = iota // 0
 	SceneCourtYard // 1
 	SceneReception // 2
+	SceneCubicle // 3
 )
 
 // Player facing direction
@@ -83,6 +84,7 @@ const (
 	DeskID // 4
 	PlantPotID // 5
 	MonitorID // 6
+	NpcID // 7
 )
 
 // Type of button
@@ -552,6 +554,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	// Set up the Y-sorted layer queue
 	// Clear it first
 	g.RenderQueue = g.RenderQueue[:0]
+	//fmt.Printf("Number of renderable items: %d\n", len(g.Scenes[g.CurrentScene].RenderItems))
 	// Push playe to queue
 	g.RenderQueue = append(g.RenderQueue, RenderItem {
 		ID: PlayerID,
@@ -565,7 +568,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		g.RenderQueue = append(g.RenderQueue, item)
 	}
 	// Sort the layer by Y value
-	slices.SortFunc(g.RenderQueue, func(a, b RenderItem) int {
+	slices.SortStableFunc(g.RenderQueue, func(a, b RenderItem) int {
 		return cmp.Compare(a.BaseY, b.BaseY)
 	})
 	// Draw Y-sorted layer

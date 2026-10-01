@@ -38,6 +38,14 @@ var miniDinoByteData []byte
 var receptionByteData []byte
 //go:embed assets/reception-collision.csv
 var receptionCsvStr string
+//go:embed assets/cubicle.png
+var cubicleByteData []byte
+//go:embed assets/cubicle-collision.csv
+var cubicleCsvStr string
+//go:embed assets/adam.png
+var npc1ByteData []byte
+//go:embed assets/alex.png
+var npc2ByteData []byte
 // Global variable storing all the scenes
 var gameScenes = make(map[int]*Scene)
 
@@ -49,6 +57,9 @@ var courtYardBg *ebiten.Image
 var playerSetImage *ebiten.Image
 var miniDinoBg *ebiten.Image
 var receptionBg *ebiten.Image
+var cubicleBg *ebiten.Image
+var npc1SetImage *ebiten.Image
+var npc2SetImage *ebiten.Image
 
 // Global variable storing the virtual touch buttons info
 var mobileButtons []TouchButton
@@ -58,6 +69,7 @@ var Time time.Time
 var parkingLotCollision [][]int
 var courtYardCollision [][]int
 var receptionCollision [][]int
+var cubicleCollision [][]int
 var wg sync.WaitGroup
 
 // Global variable storing interactions
@@ -146,6 +158,21 @@ func init() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
+		cubicleBg = loadEmbeddedImage(cubicleByteData)
+	}()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		npc1SetImage = loadEmbeddedImage(npc1ByteData)
+	}()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		npc2SetImage = loadEmbeddedImage(npc2ByteData)
+	}()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
 		parkingLotCollision = loadCollisionCsv(parkingLotCsvStr)
 	}()
 	wg.Add(1)
@@ -157,6 +184,11 @@ func init() {
 	go func() {
 		defer wg.Done()
 		receptionCollision = loadCollisionCsv(receptionCsvStr)
+	}()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		cubicleCollision = loadCollisionCsv(cubicleCsvStr)
 	}()
 	wg.Wait()
 	fmt.Printf("Time elasped: %s\n", time.Since(Time))
@@ -555,6 +587,267 @@ func init() {
 				SpawnX: 2,
 				SpawnY: 11,
 				TargetScene: SceneCourtYard,
+			},
+			{
+				DespawnX: 1,
+				DespawnY: 20,
+				SpawnX: 28,
+				SpawnY: 7,
+				TargetScene: SceneCubicle,
+			},
+			{
+				DespawnX: 1,
+				DespawnY: 21,
+				SpawnX: 28,
+				SpawnY: 8,
+				TargetScene: SceneCubicle,
+			},
+		},
+	}
+
+	// Scene: Cubicle
+	gameScenes[SceneCubicle] = &Scene {
+		ID: SceneCubicle,
+		BgImage: cubicleBg,
+		Collision: cubicleCollision,
+		WidthPixels: float64(cubicleBg.Bounds().Dx()),
+		HeightPixels: float64(cubicleBg.Bounds().Dy()),
+		RenderItems: []RenderItem {
+			{
+				ID: DeskID,
+				BaseY: 2 * tileSize,
+				ScreenDstX: 3 * tileSize,
+				ScreenDstY: 2 * tileSize,
+				SpriteImg: interiorImage,
+				SpriteGridSrcX: 0,
+				SpriteGridSrcY: 5,
+				SpriteGridDstX: 3,
+				SpriteGridDstY: 6,
+			},
+			{
+				ID: DeskID,
+				BaseY: 2 * tileSize,
+				ScreenDstX: 6 * tileSize,
+				ScreenDstY: 2 * tileSize,
+				SpriteImg: interiorImage,
+				SpriteGridSrcX: 0,
+				SpriteGridSrcY: 5,
+				SpriteGridDstX: 3,
+				SpriteGridDstY: 6,
+			},
+			{
+				ID: DeskID,
+				BaseY: 2 * tileSize,
+				ScreenDstX: 9 * tileSize,
+				ScreenDstY: 2 * tileSize,
+				SpriteImg: interiorImage,
+				SpriteGridSrcX: 0,
+				SpriteGridSrcY: 5,
+				SpriteGridDstX: 3,
+				SpriteGridDstY: 6,
+			},
+			{
+				ID: DeskID,
+				BaseY: 2 * tileSize,
+				ScreenDstX: 18 * tileSize,
+				ScreenDstY: 2 * tileSize,
+				SpriteImg: interiorImage,
+				SpriteGridSrcX: 0,
+				SpriteGridSrcY: 5,
+				SpriteGridDstX: 3,
+				SpriteGridDstY: 6,
+			},
+			{
+				ID: DeskID,
+				BaseY: 2 * tileSize,
+				ScreenDstX: 21 * tileSize,
+				ScreenDstY: 2 * tileSize,
+				SpriteImg: interiorImage,
+				SpriteGridSrcX: 0,
+				SpriteGridSrcY: 5,
+				SpriteGridDstX: 3,
+				SpriteGridDstY: 6,
+			},
+			{
+				ID: DeskID,
+				BaseY: 2 * tileSize,
+				ScreenDstX: 24 * tileSize,
+				ScreenDstY: 2 * tileSize,
+				SpriteImg: interiorImage,
+				SpriteGridSrcX: 0,
+				SpriteGridSrcY: 5,
+				SpriteGridDstX: 3,
+				SpriteGridDstY: 6,
+			},
+			{
+				ID: DeskID,
+				BaseY: 6 * tileSize,
+				ScreenDstX: 3 * tileSize,
+				ScreenDstY: 6 * tileSize,
+				SpriteImg: interiorImage,
+				SpriteGridSrcX: 0,
+				SpriteGridSrcY: 5,
+				SpriteGridDstX: 1,
+				SpriteGridDstY: 6,
+			},
+			{
+				ID: DeskID,
+				BaseY: 6 * tileSize,
+				ScreenDstX: 6 * tileSize,
+				ScreenDstY: 6 * tileSize,
+				SpriteImg: interiorImage,
+				SpriteGridSrcX: 0,
+				SpriteGridSrcY: 5,
+				SpriteGridDstX: 1,
+				SpriteGridDstY: 6,
+			},
+			{
+				ID: DeskID,
+				BaseY: 6 * tileSize,
+				ScreenDstX: 9 * tileSize,
+				ScreenDstY: 6 * tileSize,
+				SpriteImg: interiorImage,
+				SpriteGridSrcX: 0,
+				SpriteGridSrcY: 5,
+				SpriteGridDstX: 1,
+				SpriteGridDstY: 6,
+			},
+			{
+				ID: DeskID,
+				BaseY: 6 * tileSize,
+				ScreenDstX: 18 * tileSize,
+				ScreenDstY: 6 * tileSize,
+				SpriteImg: interiorImage,
+				SpriteGridSrcX: 0,
+				SpriteGridSrcY: 5,
+				SpriteGridDstX: 1,
+				SpriteGridDstY: 6,
+			},
+			{
+				ID: DeskID,
+				BaseY: 6 * tileSize,
+				ScreenDstX: 21 * tileSize,
+				ScreenDstY: 6 * tileSize,
+				SpriteImg: interiorImage,
+				SpriteGridSrcX: 0,
+				SpriteGridSrcY: 5,
+				SpriteGridDstX: 1,
+				SpriteGridDstY: 6,
+			},
+			{
+				ID: DeskID,
+				BaseY: 6 * tileSize,
+				ScreenDstX: 24 * tileSize,
+				ScreenDstY: 6 * tileSize,
+				SpriteImg: interiorImage,
+				SpriteGridSrcX: 0,
+				SpriteGridSrcY: 5,
+				SpriteGridDstX: 1,
+				SpriteGridDstY: 6,
+			},
+			{
+				ID: DeskID,
+				BaseY: 6 * tileSize,
+				ScreenDstX: 5 * tileSize,
+				ScreenDstY: 6 * tileSize,
+				SpriteImg: interiorImage,
+				SpriteGridSrcX: 2,
+				SpriteGridSrcY: 5,
+				SpriteGridDstX: 3,
+				SpriteGridDstY: 6,
+			},
+			{
+				ID: DeskID,
+				BaseY: 6 * tileSize,
+				ScreenDstX: 8 * tileSize,
+				ScreenDstY: 6 * tileSize,
+				SpriteImg: interiorImage,
+				SpriteGridSrcX: 2,
+				SpriteGridSrcY: 5,
+				SpriteGridDstX: 3,
+				SpriteGridDstY: 6,
+			},
+			{
+				ID: DeskID,
+				BaseY: 6 * tileSize,
+				ScreenDstX: 11 * tileSize,
+				ScreenDstY: 6 * tileSize,
+				SpriteImg: interiorImage,
+				SpriteGridSrcX: 2,
+				SpriteGridSrcY: 5,
+				SpriteGridDstX: 3,
+				SpriteGridDstY: 6,
+			},
+			{
+				ID: DeskID,
+				BaseY: 6 * tileSize,
+				ScreenDstX: 20 * tileSize,
+				ScreenDstY: 6 * tileSize,
+				SpriteImg: interiorImage,
+				SpriteGridSrcX: 2,
+				SpriteGridSrcY: 5,
+				SpriteGridDstX: 3,
+				SpriteGridDstY: 6,
+			},
+			{
+				ID: DeskID,
+				BaseY: 6 * tileSize,
+				ScreenDstX: 23 * tileSize,
+				ScreenDstY: 6 * tileSize,
+				SpriteImg: interiorImage,
+				SpriteGridSrcX: 2,
+				SpriteGridSrcY: 5,
+				SpriteGridDstX: 3,
+				SpriteGridDstY: 6,
+			},
+			{
+				ID: DeskID,
+				BaseY: 6 * tileSize,
+				ScreenDstX: 26 * tileSize,
+				ScreenDstY: 6 * tileSize,
+				SpriteImg: interiorImage,
+				SpriteGridSrcX: 2,
+				SpriteGridSrcY: 5,
+				SpriteGridDstX: 3,
+				SpriteGridDstY: 6,
+			},
+			{
+				ID: NpcID,
+				BaseY: 3 * tileSize,
+				ScreenDstX: 22 * tileSize,
+				ScreenDstY: 2 * tileSize,
+				SpriteImg: npc1SetImage,
+				SpriteGridSrcX: 11,
+				SpriteGridSrcY: 10,
+				SpriteGridDstX: 12,
+				SpriteGridDstY: 12,
+			},
+			{
+				ID: NpcID,
+				BaseY: 3 * tileSize,
+				ScreenDstX: 4 * tileSize,
+				ScreenDstY: 2 * tileSize,
+				SpriteImg: npc2SetImage,
+				SpriteGridSrcX: 11,
+				SpriteGridSrcY: 10,
+				SpriteGridDstX: 12,
+				SpriteGridDstY: 12,
+			},
+		},
+		WarpTriggers: []WarpTrigger {
+			{
+				DespawnX: 29,
+				DespawnY: 7,
+				SpawnX: 2,
+				SpawnY: 20,
+				TargetScene: SceneReception,
+			},
+			{
+				DespawnX: 29,
+				DespawnY: 8,
+				SpawnX: 2,
+				SpawnY: 21,
+				TargetScene: SceneReception,
 			},
 		},
 	}
